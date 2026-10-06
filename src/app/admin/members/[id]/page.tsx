@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { sql, type Member } from "@/lib/db";
 import { fmtDate } from "@/lib/camp";
 import { TRACKS } from "@/lib/settings";
-import { messageMember, updateMember } from "../../actions";
+import { messageMember, updateMember, viewAsMember } from "../../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +19,11 @@ export default async function MemberDetail({ params }: { params: Promise<{ id: s
     <>
       <h1>{m.name || m.email}</h1>
       <p className="muted">{m.email}　／　入会 {new Date(m.joined_at).toLocaleDateString("ja-JP")}　／　連携コード {m.line_link_code}　／　スクール代 支払い{m.school_invoices_paid}回</p>
+
+      <form action={viewAsMember} style={{ marginBottom: 12 }}>
+        <input type="hidden" name="id" value={m.id} />
+        <button className="btn small ghost">この人のマイページを見る</button>
+      </form>
 
       <form action={updateMember} className="card">
         <input type="hidden" name="id" value={m.id} />

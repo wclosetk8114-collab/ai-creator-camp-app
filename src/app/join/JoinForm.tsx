@@ -1,7 +1,6 @@
 "use client";
 import { useState } from "react";
 
-const LP = "https://ai-creator-camp-theta.vercel.app";
 const f = (n: number) => n.toLocaleString("ja-JP");
 
 export default function JoinForm({ initialPlan, initialStudent, initialRef }: { initialPlan?: string; initialStudent: boolean; initialRef: string }) {
@@ -69,7 +68,7 @@ export default function JoinForm({ initialPlan, initialStudent, initialRef }: { 
       </div>
       <label className="check">
         <input type="checkbox" name="agree" value="1" required />
-        <span><a href={`${LP}/terms.html`} target="_blank">利用規約</a>と<a href={`${LP}/tokushoho.html`} target="_blank">特定商取引法に基づく表記</a>を読んで、同意します</span>
+        <span><a href="/terms" target="_blank">利用規約</a>と<a href="/tokushoho" target="_blank">特定商取引法に基づく表記</a>を読んで、同意します</span>
       </label>
       <button className="btn block" disabled={busy} style={{ marginTop: 16 }}>
         {busy ? "決済ページを開いています…" : "決済に進む"}

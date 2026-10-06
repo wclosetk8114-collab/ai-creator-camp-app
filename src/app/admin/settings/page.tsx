@@ -1,5 +1,5 @@
 import { appUrl, getSettings } from "@/lib/settings";
-import { connectLine, saveSettings } from "../actions";
+import { connectLine, saveSettings, setupStripe } from "../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +28,7 @@ function Plain({ name, label, value, help }: { name: string; label: string; valu
   );
 }
 
-export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ saved?: string; line?: string }> }) {
+export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ saved?: string; line?: string; stripe?: string }> }) {
   const sp = await searchParams;
   const s = await getSettings();
   return (
@@ -36,6 +36,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       <h1>設定</h1>
       {sp.saved && <div className="okbox">保存しました</div>}
       {sp.line && <div className="warnbox">{sp.line}</div>}
+      {sp.stripe && <div className="warnbox">{sp.stripe}</div>}
 
       <form action={saveSettings}>
         <div className="card">
@@ -49,8 +50,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
 
         <div className="card">
           <h3>② Stripe（決済）</h3>
-          <Secret name="stripe_secret_key" label="シークレットキー（sk_live_…）" value={s.stripe_secret_key} help="Stripe ダッシュボード → 開発者 → APIキー" />
-          <Secret name="stripe_webhook_secret" label="Webhook署名シークレット（whsec_…）" value={s.stripe_webhook_secret} help="運営側で設定済みなら触らなくてOK" />
+          <Secret name="stripe_secret_key" label="シークレットキー（sk_live_…）" value={s.stripe_secret_key} help="AIクリエイターのStripe → 開発者 → APIキー。保存すると、価格8本とWebhookがこのアカウントに自動でできます" />
+          <Secret name="stripe_webhook_secret" label="Webhook署名シークレット（whsec_…）" value={s.stripe_webhook_secret} help="自動で入ります。触らなくてOK" />
           <details style={{ marginTop: 10 }}>
             <summary className="muted" style={{ cursor: "pointer" }}>価格ID（ふだんは触らない）</summary>
             <div className="grid2">
@@ -87,6 +88,12 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         </div>
 
         <button className="btn">保存</button>
+      </form>
+
+      <form action={setupStripe} className="card" style={{ marginTop: 16 }}>
+        <h3>Stripeの価格とWebhookを作り直す</h3>
+        <p className="muted">ふだんは不要。キー保存のときに自動で行います。うまくいかなかったときだけ押してください。</p>
+        <button className="btn small ghost">Stripeを設定し直す</button>
       </form>
 
       <form action={connectLine} className="card" style={{ marginTop: 16 }}>

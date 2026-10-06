@@ -79,3 +79,25 @@ th { color: var(--muted); font-weight: 700; white-space: nowrap; }
 .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 @media (max-width: 560px) { .grid2 { grid-template-columns: 1fr; } h1 { font-size: 24px; } }
+
+/* ===== LP ===== */
+.lp-hero { text-align: center; padding: 20px 0 8px; }
+.lp-logo { width: 240px; }
+.lp-h1 { font-size: 34px; line-height: 1.45; margin: 18px 0 14px; }
+.lp-center { justify-content: center; text-align: center; }
+.lp-sec { margin: 56px 0; }
+.lp-label { font-size: 12px; letter-spacing: .2em; font-weight: 700; margin: 0 0 4px; background: var(--rainbow); -webkit-background-clip: text; background-clip: text; color: transparent; display: inline-block; }
+.lp-sec h2 { margin-top: 0; font-size: 24px; line-height: 1.5; }
+.lp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-bottom: 14px; }
+.lp-grid .card { margin: 0; }
+.lp-num { font-size: 12px; font-weight: 700; letter-spacing: .1em; color: var(--muted); }
+.lp-stages { margin: 6px 0 0; padding-left: 1.4em; }
+.lp-stages li { padding: 2px 0; }
+.lp-ba { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.lp-ba p { margin: 6px 0 0; }
+.lp-price { font-size: 32px; font-weight: 700; color: var(--navy); line-height: 1.3; margin: 6px 0; }
+.lp-price small { font-size: 14px; font-weight: 400; color: var(--muted); margin-left: 4px; }
+.lp-faq summary { cursor: pointer; font-weight: 700; color: var(--navy); }
+.legal h2 { font-size: 17px; margin: 26px 0 8px; }
+.legal th { width: 30%; }
+@media (max-width: 560px) { .lp-h1 { font-size: 26px; } .lp-ba { grid-template-columns: 1fr; } }

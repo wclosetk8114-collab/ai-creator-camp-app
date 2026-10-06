@@ -1,7 +1,5 @@
 import Link from "next/link";
 
-const LP = "https://ai-creator-camp-theta.vercel.app";
-
 export default function Shell({ children, right }: { children: React.ReactNode; right?: React.ReactNode }) {
   return (
     <>
@@ -16,10 +14,10 @@ export default function Shell({ children, right }: { children: React.ReactNode; 
         </header>
         <main>{children}</main>
         <footer className="site-foot">
-          <a href={`${LP}/terms.html`}>利用規約</a>
-          <a href={`${LP}/tokushoho.html`}>特定商取引法に基づく表記</a>
-          <a href={`${LP}/privacy.html`}>プライバシーポリシー</a>
-          <div>© AI Creator Camp</div>
+          <Link href="/terms">利用規約</Link>
+          <Link href="/tokushoho">特定商取引法に基づく表記</Link>
+          <Link href="/privacy">プライバシーポリシー</Link>
+          <div>© 2026 AI Creator Camp　お問い合わせ：ai.creator.camp2026@gmail.com</div>
         </footer>
       </div>
     </>

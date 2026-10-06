@@ -7,6 +7,8 @@ import { isAdmin, setAdminSession, clearAdminSession } from "@/lib/session";
 import { appUrl, getSettings, setSetting } from "@/lib/settings";
 import { botInfo, multicast, push, setupRichMenu, setWebhook, text } from "@/lib/line";
 import { advance, fmtDate } from "@/lib/camp";
+import { setupStripeCatalog } from "@/lib/stripe-setup";
+import { setMemberSession } from "@/lib/session";
 
 async function guard() {
   if (!(await isAdmin())) redirect("/admin-login");
@@ -38,6 +40,7 @@ const SETTING_KEYS = [
 
 export async function saveSettings(fd: FormData) {
   await guard();
+  const before = (await getSettings()).stripe_secret_key;
   for (const k of SETTING_KEYS) {
     const v = fd.get(k);
     if (v === null) continue;
@@ -46,8 +49,29 @@ export async function saveSettings(fd: FormData) {
     if (val === "" && fd.get(`${k}__secret`) === "1") continue;
     await setSetting(k, val);
   }
+  // Stripeのキーが新しく入ったら、そのアカウントに価格とWebhookを自動で作る
+  const after = (await getSettings()).stripe_secret_key;
+  if (after && after !== before) {
+    const r = await setupStripeCatalog(after);
+    redirect("/admin/settings?saved=1&stripe=" + encodeURIComponent(r.message));
+  }
   revalidatePath("/admin/settings");
   redirect("/admin/settings?saved=1");
+}
+
+export async function setupStripe() {
+  await guard();
+  const s = await getSettings();
+  if (!s.stripe_secret_key) redirect("/admin/settings?stripe=" + encodeURIComponent("先にシークレットキーを保存してください"));
+  const r = await setupStripeCatalog(s.stripe_secret_key);
+  redirect("/admin/settings?stripe=" + encodeURIComponent(r.message));
+}
+
+// 管理者が、その会員の画面をそのまま見る（メール不要）
+export async function viewAsMember(fd: FormData) {
+  await guard();
+  await setMemberSession(String(fd.get("id")));
+  redirect("/me");
 }
 
 export async function connectLine() {
