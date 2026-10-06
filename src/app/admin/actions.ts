@@ -68,6 +68,15 @@ export async function setupStripe() {
   redirect("/admin/settings?stripe=" + encodeURIComponent(r.message));
 }
 
+export async function testMail() {
+  await guard();
+  const s = await getSettings();
+  const { sendMailDetail } = await import("@/lib/mail");
+  const to = s.admin_email || "";
+  const r = await sendMailDetail(to, "【AI Creator Camp】テストメール", "メール送信の設定はうまくいっています。\n\nAI Creator Camp");
+  redirect("/admin/settings?mail=" + encodeURIComponent(r.ok ? `${to} にテストメールを送りました。届いているか確認してください。` : `送れませんでした：${r.detail}`));
+}
+
 // 管理者が、その会員の画面をそのまま見る（メール不要）
 export async function viewAsMember(fd: FormData) {
   await guard();

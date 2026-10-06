@@ -1,5 +1,5 @@
 import { appUrl, getSettings } from "@/lib/settings";
-import { connectLine, saveSettings, setupStripe } from "../actions";
+import { connectLine, saveSettings, setupStripe, testMail } from "../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +28,7 @@ function Plain({ name, label, value, help }: { name: string; label: string; valu
   );
 }
 
-export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ saved?: string; line?: string; stripe?: string }> }) {
+export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ saved?: string; line?: string; stripe?: string; mail?: string }> }) {
   const sp = await searchParams;
   const s = await getSettings();
   return (
@@ -37,6 +37,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       {sp.saved && <div className="okbox">保存しました</div>}
       {sp.line && <div className="warnbox">{sp.line}</div>}
       {sp.stripe && <div className="warnbox">{sp.stripe}</div>}
+      {sp.mail && <div className="warnbox">{sp.mail}</div>}
 
       <form action={saveSettings}>
         <div className="card">
@@ -88,6 +89,12 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         </div>
 
         <button className="btn">保存</button>
+      </form>
+
+      <form action={testMail} className="card" style={{ marginTop: 16 }}>
+        <h3>テストメールを送る</h3>
+        <p className="muted">③を保存したあとに押すと、「新規申込の通知先」にテストメールを送ります。届かないときは、理由がここに出ます。</p>
+        <button className="btn small ghost">テストメールを送る</button>
       </form>
 
       <form action={setupStripe} className="card" style={{ marginTop: 16 }}>
