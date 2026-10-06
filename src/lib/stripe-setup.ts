@@ -1,7 +1,7 @@
 import Stripe from "stripe";
 import { appUrl, setSetting } from "./settings";
 
-// 管理画面で入れた Stripe アカウント（AIクリエイター）に、価格8本とWebhookを自動で作る。
+// 管理画面で入れた Stripe アカウント（AIクリエイター）に、価格とWebhookを自動で作る。
 // lookup_key で探すので、何回押しても重複しない。
 const CATALOG = [
   { key: "price_tool", name: "AI Creator Camp 開発ツール一式", amount: 30000, recurring: false, desc: "Claudeに差し込むプラグイン一式＋設定手順書（買い切り・税込）" },
@@ -29,8 +29,12 @@ export async function setupStripeCatalog(secretKey: string): Promise<{ ok: boole
     const accountName = account.settings?.dashboard?.display_name || account.business_profile?.name || account.id;
 
     const lookups = CATALOG.map((c) => `camp_${c.key}`);
-    const existing = await stripe.prices.list({ lookup_keys: lookups, active: true, limit: 20 });
-    const byLookup = new Map(existing.data.map((p) => [p.lookup_key, p]));
+    // lookup_keys は1回10件までなので分けて探す
+    const byLookup = new Map<string | null, Stripe.Price>();
+    for (let i = 0; i < lookups.length; i += 10) {
+      const part = await stripe.prices.list({ lookup_keys: lookups.slice(i, i + 10), active: true, limit: 20 });
+      for (const p of part.data) byLookup.set(p.lookup_key, p);
+    }
     let created = 0;
     for (const c of CATALOG) {
       const lk = `camp_${c.key}`;
@@ -59,7 +63,7 @@ export async function setupStripeCatalog(secretKey: string): Promise<{ ok: boole
 
     return {
       ok: true,
-      message: `Stripe「${accountName}」${secretKey.includes("_live_") ? "（本番）" : "（テスト）"}に、価格12本（新規${created}本）とWebhookを設定しました。`,
+      message: `Stripe「${accountName}」${secretKey.includes("_live_") ? "（本番）" : "（テスト）"}に、価格${CATALOG.length}本（新規${created}本）とWebhookを設定しました。`,
     };
   } catch (e) {
     return { ok: false, message: `Stripeの設定に失敗しました：${String((e as Error).message || e).slice(0, 200)}` };
