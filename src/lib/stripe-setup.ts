@@ -10,6 +10,8 @@ const CATALOG = [
   { key: "price_school_a_student", name: "AI Creator Camp スクール（分割プラン・学生）", amount: 5000, recurring: true, desc: "学生価格。2・3ヶ月目に月5,000円（税込）" },
   { key: "price_school_b", name: "AI Creator Camp スクール（月額プラン）", amount: 20000, recurring: true, desc: "1〜3ヶ月目に月20,000円。4ヶ月目から月3,980円の専門コースへ自動で切替（税込）" },
   { key: "price_school_b_student", name: "AI Creator Camp スクール（月額プラン・学生）", amount: 10000, recurring: true, desc: "学生価格。1〜3ヶ月目に月10,000円（税込）" },
+  { key: "price_school_single", name: "AI Creator Camp スクール（ツール購入者の追加）", amount: 50000, recurring: false, desc: "ツール購入後にスクールへ入る場合（一括・税込）。4ヶ月目から月3,980円の専門コース" },
+  { key: "price_school_single_student", name: "AI Creator Camp スクール（ツール購入者の追加・学生）", amount: 25000, recurring: false, desc: "学生価格（一括・税込）" },
   { key: "price_cont", name: "AI Creator Camp 専門コース", amount: 3980, recurring: true, desc: "修了後の専門特化コース（月額・税込）" },
   { key: "price_cont_student", name: "AI Creator Camp 専門コース（学生）", amount: 1990, recurring: true, desc: "修了後の専門特化コース・学生価格（月額・税込）" },
 ];
@@ -55,7 +57,7 @@ export async function setupStripeCatalog(secretKey: string): Promise<{ ok: boole
 
     return {
       ok: true,
-      message: `Stripe「${accountName}」${secretKey.includes("_live_") ? "（本番）" : "（テスト）"}に、価格8本（新規${created}本）とWebhookを設定しました。`,
+      message: `Stripe「${accountName}」${secretKey.includes("_live_") ? "（本番）" : "（テスト）"}に、価格10本（新規${created}本）とWebhookを設定しました。`,
     };
   } catch (e) {
     return { ok: false, message: `Stripeの設定に失敗しました：${String((e as Error).message || e).slice(0, 200)}` };

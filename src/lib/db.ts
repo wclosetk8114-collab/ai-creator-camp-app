@@ -18,12 +18,13 @@ export type Member = {
   id: string;
   email: string;
   name: string;
-  plan: "tool" | "school_a" | "school_b";
+  plan: "tool" | "school_a" | "school_b" | "school_single";
   is_student: boolean;
   student_status: "none" | "pending" | "approved" | "rejected";
   status: "active" | "past_due" | "canceled";
   track: string;
   current_stage: number;
+  setup_step: number;
   core_completed: boolean;
   line_user_id: string | null;
   line_link_code: string | null;

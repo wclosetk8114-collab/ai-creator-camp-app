@@ -50,12 +50,12 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
 
         <div className="card">
           <h3>② Stripe（決済）</h3>
-          <Secret name="stripe_secret_key" label="シークレットキー（sk_live_…）" value={s.stripe_secret_key} help="AIクリエイターのStripe → 開発者 → APIキー。保存すると、価格8本とWebhookがこのアカウントに自動でできます" />
+          <Secret name="stripe_secret_key" label="シークレットキー（sk_live_…）" value={s.stripe_secret_key} help="AIクリエイターのStripe → 開発者 → APIキー。保存すると、価格とWebhookがこのアカウントに自動でできます" />
           <Secret name="stripe_webhook_secret" label="Webhook署名シークレット（whsec_…）" value={s.stripe_webhook_secret} help="自動で入ります。触らなくてOK" />
           <details style={{ marginTop: 10 }}>
             <summary className="muted" style={{ cursor: "pointer" }}>価格ID（ふだんは触らない）</summary>
             <div className="grid2">
-              {["price_tool", "price_tool_student", "price_school_a", "price_school_a_student", "price_school_b", "price_school_b_student", "price_cont", "price_cont_student"].map((k) => (
+              {["price_tool", "price_tool_student", "price_school_a", "price_school_a_student", "price_school_b", "price_school_b_student", "price_cont", "price_cont_student", "price_school_single", "price_school_single_student"].map((k) => (
                 <Plain key={k} name={k} label={k} value={s[k] || ""} />
               ))}
             </div>

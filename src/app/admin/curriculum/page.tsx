@@ -5,7 +5,7 @@ import { deleteStage, saveStage } from "../actions";
 
 export const dynamic = "force-dynamic";
 
-const ALL: Record<string, string> = { core: "基礎（90日）", ...TRACKS };
+const ALL: Record<string, string> = { setup: "ツール導入", core: "基礎（90日）", ...TRACKS };
 
 export default async function Curriculum({ searchParams }: { searchParams: Promise<{ track?: string; saved?: string }> }) {
   const sp = await searchParams;

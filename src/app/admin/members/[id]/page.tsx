@@ -33,6 +33,7 @@ export default async function MemberDetail({ params }: { params: Promise<{ id: s
             <select name="plan" defaultValue={m.plan}>
               <option value="school_a">スクールつき・分割</option>
               <option value="school_b">スクールつき・月額</option>
+              <option value="school_single">スクール（ツール購入後に追加）</option>
               <option value="tool">ツールのみ</option>
             </select></div>
           <div><label>状態</label>
@@ -52,6 +53,7 @@ export default async function MemberDetail({ params }: { params: Promise<{ id: s
               {Object.entries(TRACKS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select></div>
           <div><label>いまのステージ</label><input type="number" name="current_stage" min={1} defaultValue={m.current_stage} /></div>
+          <div><label>ツール導入ステップ（7で完了）</label><input type="number" name="setup_step" min={1} defaultValue={m.setup_step} /></div>
         </div>
         <label className="check"><input type="checkbox" name="core_completed" value="1" defaultChecked={m.core_completed} /> 基礎修了</label>
         <label>メモ（運営だけが見る）</label>

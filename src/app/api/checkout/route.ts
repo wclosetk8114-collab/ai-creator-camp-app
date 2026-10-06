@@ -2,12 +2,14 @@ import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { getStripe, priceFor } from "@/lib/stripe";
 import { appUrl } from "@/lib/settings";
+import { getMember } from "@/lib/session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   const f = await req.formData();
+  if (f.get("plan") === "school_single") return upgrade();
   const plan = String(f.get("plan") || "");
   const email = String(f.get("email") || "").trim().toLowerCase();
   const name = String(f.get("name") || "").trim().slice(0, 80);
@@ -64,4 +66,37 @@ export async function POST(req: Request) {
     return back("決済ページを開けませんでした。時間をおいてお試しください");
   }
   return NextResponse.redirect(session.url!, 303);
+}
+
+// ツールを買った人が、あとからスクールに入る（一括5万／学生2.5万。4ヶ月目から専門コース）
+async function upgrade() {
+  const m = await getMember();
+  if (!m) return NextResponse.redirect(`${appUrl()}/login`, 303);
+  const back = (msg: string) => NextResponse.redirect(`${appUrl()}/me?e=${encodeURIComponent(msg)}`, 303);
+  if (m.plan !== "tool") return back("すでにスクールに入っています");
+  const ctx = await getStripe();
+  if (!ctx) return back("ただいま決済の準備中です");
+  const { stripe, s } = ctx;
+  const student = m.is_student && m.student_status !== "rejected";
+  const one = s[student ? "price_school_single_student" : "price_school_single"];
+  const cont = s[student ? "price_cont_student" : "price_cont"];
+  if (!one || !cont) return back("ただいま決済の準備中です");
+  const metadata = { plan: "school_single", student: student ? "1" : "0", name: m.name, ref: m.referrer };
+  try {
+    const session = await stripe.checkout.sessions.create({
+      mode: "subscription",
+      ...(m.stripe_customer_id ? { customer: m.stripe_customer_id } : { customer_email: m.email }),
+      metadata,
+      locale: "ja",
+      line_items: [{ price: one, quantity: 1 }, { price: cont, quantity: 1 }],
+      // スクール代は一括。専門コース（月額）は90日後から
+      subscription_data: { metadata, trial_period_days: 90 },
+      success_url: `${appUrl()}/me?upgraded=1`,
+      cancel_url: `${appUrl()}/me`,
+    });
+    return NextResponse.redirect(session.url!, 303);
+  } catch (e) {
+    console.error("upgrade checkout error", e);
+    return back("決済ページを開けませんでした");
+  }
 }

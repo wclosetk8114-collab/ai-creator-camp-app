@@ -38,10 +38,49 @@ ${s.task}
 できたら「提出」と送ってください。${m ? "" : ""}`;
 }
 
+/** ツール導入（プラグインまで）のいまのステップ。終わっていれば null */
+export async function currentSetup(m: Member): Promise<Stage | null> {
+  return getStage("setup", m.setup_step);
+}
+
+export async function setupText(s: Stage, total: number) {
+  return `【ツール導入 ${s.no}/${total}】${s.title}
+
+${s.body}
+
+■ やること
+${s.task}
+
+わからないときは、画面のスクショやそのまま質問を送ってください。`;
+}
+
+/** 「できた」で導入を1つ進める。次に送る文を返す */
+export async function advanceSetup(m: Member): Promise<string> {
+  const total = await stageCount("setup");
+  if (m.setup_step > total) return "ツールの準備はもう完了しています。";
+  const next = m.setup_step + 1;
+  await sql`update camp.members set setup_step = ${next} where id = ${m.id}`;
+  if (next > total) {
+    if (hasSchool(m)) {
+      const st = await getStage(m.track, m.current_stage);
+      return `ツールの準備、完了です。おつかれさまでした。\nここからスクールの課題に進みます。\n\n` + (st ? stageText(st) : "");
+    }
+    return `ツールの準備、完了です。おつかれさまでした。
+これで、話しかけるだけで動画・画像・LP・アプリが作れます。作りたいものがあれば、このLINEで相談してください。
+
+90日で事業をつくるスクールに入る場合は、マイページから申し込めます（50,000円・学生25,000円）。
+${appUrl()}/me`;
+  }
+  const ns = await getStage("setup", next);
+  return "OKです。次のステップです。\n\n" + (ns ? await setupText(ns, total) : "");
+}
+
 export async function statusText(m: Member): Promise<string> {
+  const setup = await currentSetup(m);
+  if (setup) return setupText(setup, await stageCount("setup"));
   if (!hasSchool(m)) {
-    return `いまのプランは「ツールのみ」です。ツールの使い方は、なんでもこのLINEで聞いてください。
-マイページ：${appUrl()}/me`;
+    return `ツールの準備は完了しています。使い方は、なんでもこのLINEで聞いてください。
+スクールに入る場合はマイページから：${appUrl()}/me`;
   }
   const s = await currentStage(m);
   if (s) return stageText(s, m);

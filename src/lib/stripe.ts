@@ -8,7 +8,7 @@ export async function getStripe(): Promise<{ stripe: Stripe; s: Settings } | nul
   return { stripe: new Stripe(key), s };
 }
 
-export function priceFor(s: Settings, plan: "tool" | "school_a" | "school_b", student: boolean) {
+export function priceFor(s: Settings, plan: "tool" | "school_a" | "school_b" | "school_single", student: boolean) {
   const suf = student ? "_student" : "";
   return {
     tool: s[`price_tool${suf}`],

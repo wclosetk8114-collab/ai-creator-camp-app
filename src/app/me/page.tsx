@@ -3,7 +3,7 @@ import Shell from "../Shell";
 import { getMember } from "@/lib/session";
 import { sql } from "@/lib/db";
 import { getSettings, PLANS, TRACKS, CONT_PRICE, yen } from "@/lib/settings";
-import { currentStage, fmtDate, hasSchool, listStages, newLinkCode, upcomingEvents } from "@/lib/camp";
+import { currentStage, fmtDate, hasSchool, listStages, newLinkCode, stageCount, upcomingEvents } from "@/lib/camp";
 import SubmitBox from "./SubmitBox";
 import { chooseTrackAction, rsvpAction } from "./actions";
 
@@ -34,6 +34,8 @@ export default async function Me({ searchParams }: { searchParams: Promise<Recor
     ]),
   );
   const plan = PLANS[m.plan];
+  const setupTotal = await stageCount("setup");
+  const setupDone = Math.min(m.setup_step - 1, setupTotal);
 
   return (
     <Shell
@@ -52,6 +54,8 @@ export default async function Me({ searchParams }: { searchParams: Promise<Recor
         {m.is_student && m.student_status === "pending" && <span className="pill warn">学生証の確認待ち</span>}
       </div>
       {sp.e === "portal" && <div className="err">お支払いページを開けませんでした。公式LINEで「スタッフ」と送ってください。</div>}
+      {sp.e && sp.e !== "portal" && <div className="err">{sp.e}</div>}
+      {sp.upgraded && <div className="okbox">スクールのお申し込み、ありがとうございます。公式LINEで「いまの課題」と送ると始められます。</div>}
 
       {/* LINE連携 */}
       <h2>公式LINE</h2>
@@ -80,6 +84,9 @@ export default async function Me({ searchParams }: { searchParams: Promise<Recor
       <div className="card">
         <h3>開発ツール一式</h3>
         <p className="muted">Claudeに差し込むプラグイン一式と、設定の手順書です。</p>
+        <p style={{ margin: "0 0 8px" }}>
+          導入 {setupDone} / {setupTotal} ステップ{setupDone >= setupTotal ? "（完了）" : "　→ 公式LINEで「導入」と送ると、続きから1ステップずつ案内します"}
+        </p>
         <div className="row">
           {s.tool_download_url ? <a className="btn small" href={s.tool_download_url} target="_blank">ツールを受け取る</a> : <span className="muted">準備中</span>}
           {s.tool_guide_url && <a className="btn small ghost" href={s.tool_guide_url} target="_blank">手順書を見る</a>}
@@ -173,7 +180,11 @@ export default async function Me({ searchParams }: { searchParams: Promise<Recor
           <h2>スクール</h2>
           <div className="card soft">
             <p>スクール（90日のカリキュラム・AI審査・月1回の交流会）は、スクールつきのプランで使えます。</p>
-            <p className="muted">ツールのみからの切り替えは、公式LINEで「スタッフ」と送ってください。</p>
+            <form method="post" action="/api/checkout">
+              <input type="hidden" name="plan" value="school_single" />
+              <button className="btn">スクールに入る（{m.is_student && m.student_status !== "rejected" ? "25,000" : "50,000"}円・一括）</button>
+            </form>
+            <p className="muted" style={{ marginTop: 8 }}>4ヶ月目から月{m.is_student ? "1,990" : "3,980"}円の専門コースに自動で切り替わります（いつでも解約できます）。</p>
           </div>
         </>
       )}

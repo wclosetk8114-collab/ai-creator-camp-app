@@ -4,7 +4,7 @@ import { getSettings, appUrl, type Settings } from "@/lib/settings";
 import { verifyLineSignature, reply, text, texts, getContent, type LineMessage } from "@/lib/line";
 import { mentorReply } from "@/lib/ai";
 import {
-  chooseTrack, currentStage, fmtDate, hasSchool, statusText, submitWork, TRACK_WORDS, upcomingEvents,
+  advanceSetup, chooseTrack, currentSetup, currentStage, fmtDate, hasSchool, statusText, submitWork, TRACK_WORDS, upcomingEvents,
 } from "@/lib/camp";
 
 export const runtime = "nodejs";
@@ -40,6 +40,7 @@ export async function POST(req: Request) {
 }
 
 const HELP = `使い方
+・導入 … ツールの入れ方を1ステップずつ（終わったら「できた」）
 ・提出 … 課題を出す（文章・URL・画像OK。最後に「以上」）
 ・いまの課題 … 今のステージを見る
 ・交流会 … 月1回のリアル相談会・交流会
@@ -77,7 +78,7 @@ async function handle(ev: LineEvent, s: Settings) {
     await sql`update camp.members set line_user_id = null where line_user_id = ${uid} and id <> ${r[0].id}`;
     const m = r[0];
     return say([
-      text(`${m.name || ""}さん、連携できました。これからはこのLINEで、課題の提出も相談も全部できます。`),
+      text(`${m.name || ""}さん、連携できました。これからはこのLINEで、ツールの導入も、課題の提出も、相談も全部できます。まずはツールの準備から、1ステップずつ進めます。`),
       text(await statusText(m)),
       text(HELP),
     ]);
@@ -155,6 +156,19 @@ ${stage.task}
 全部送ったら「以上」と送ってください。AIがすぐ審査します。
 （やめるときは「キャンセル」）`)]);
   }
+  if (["導入", "ツール導入", "ツールの入れ方", "セットアップ"].includes(t)) {
+    return say(texts(await statusText(m)));
+  }
+  if (["できた", "できました", "完了", "OK", "ok"].includes(t)) {
+    const setup = await currentSetup(m);
+    if (setup) {
+      const msgText = await advanceSetup(m);
+      await log("user", t);
+      await log("assistant", msgText);
+      return say(texts(msgText));
+    }
+    if (hasSchool(m)) return say([text("課題ができたら「提出」と送って、提出物を送ってください。")]);
+  }
   if (["いまの課題", "今の課題", "課題", "カリキュラム", "ステージ"].includes(t)) {
     return say(texts(await statusText(m)));
   }
@@ -214,7 +228,7 @@ ${stage.task}
     else merged.push({ ...h });
   }
   if (merged.length && merged[merged.length - 1].role === "user") merged.pop();
-  const stage = await currentStage(m);
+  const stage = (await currentSetup(m)) || (await currentStage(m));
   const out = await mentorReply(m, stage, merged, msg.text || "", images);
   await log("user", msg.text || "（画像）");
   await log("assistant", out.text);

@@ -138,6 +138,16 @@ async function onInvoicePaid(inv: Stripe.Invoice, stripe: Stripe, s: Record<stri
   if (!m) return;
   if (m.status === "past_due") await sql`update camp.members set status = 'active' where id = ${m.id}`;
   if (m.continuation || m.plan === "tool") return;
+  if (m.plan === "school_single") {
+    // スクール代は一括済み。専門コース（月額）の初回が払われたら切替扱い
+    const contIds = new Set([s.price_cont, s.price_cont_student].filter(Boolean));
+    const paidCont = (inv.lines?.data || []).some((l) => {
+      const pid = l.pricing?.price_details?.price ?? (l as unknown as { price?: { id: string } }).price?.id;
+      return pid && contIds.has(pid) && l.amount > 0;
+    });
+    if (paidCont) await sql`update camp.members set continuation = true where id = ${m.id}`;
+    return;
+  }
 
   const school = schoolPriceIds(s);
   const paidSchool = (inv.lines?.data || []).some((l) => {
