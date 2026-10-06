@@ -166,9 +166,13 @@ async function onInvoicePaid(inv: Stripe.Invoice, stripe: Stripe, s: Record<stri
   const item = sub.items.data.find((it) => school.has(it.price.id));
   const cont = priceFor(s, m.plan, m.is_student && m.student_status !== "rejected").cont;
   if (item && cont) {
+    // 分割（あとからスクール）は2回払いで終わるので、専門コースの請求は申込から90日後に始める
+    const day90 = sub.start_date + 90 * 24 * 3600;
+    const waitUntil90 = m.plan === "school_single2" && day90 > Math.floor(Date.now() / 1000) + 3600;
     await stripe.subscriptions.update(subId, {
       items: [{ id: item.id, price: cont }],
       proration_behavior: "none",
+      ...(waitUntil90 ? { trial_end: day90 } : {}),
       metadata: { ...sub.metadata, stage: "continuation" },
     });
   }

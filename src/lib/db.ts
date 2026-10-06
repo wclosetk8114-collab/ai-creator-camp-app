@@ -18,7 +18,7 @@ export type Member = {
   id: string;
   email: string;
   name: string;
-  plan: "tool" | "school_a" | "school_b" | "school_single";
+  plan: "tool" | "school_a" | "school_b" | "school_single" | "school_single2";
   is_student: boolean;
   student_status: "none" | "pending" | "approved" | "rejected";
   status: "active" | "past_due" | "canceled";

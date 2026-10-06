@@ -55,7 +55,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           <details style={{ marginTop: 10 }}>
             <summary className="muted" style={{ cursor: "pointer" }}>価格ID（ふだんは触らない）</summary>
             <div className="grid2">
-              {["price_tool", "price_tool_student", "price_school_a", "price_school_a_student", "price_school_b", "price_school_b_student", "price_cont", "price_cont_student", "price_school_single", "price_school_single_student"].map((k) => (
+              {["price_tool", "price_tool_student", "price_school_a", "price_school_a_student", "price_school_b", "price_school_b_student", "price_cont", "price_cont_student", "price_school_single", "price_school_single_student", "price_school_single2", "price_school_single2_student"].map((k) => (
                 <Plain key={k} name={k} label={k} value={s[k] || ""} />
               ))}
             </div>

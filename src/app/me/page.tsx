@@ -180,10 +180,17 @@ export default async function Me({ searchParams }: { searchParams: Promise<Recor
           <h2>スクール</h2>
           <div className="card soft">
             <p>スクール（90日のカリキュラム・AI審査・月1回の交流会）は、スクールつきのプランで使えます。</p>
-            <form method="post" action="/api/checkout">
-              <input type="hidden" name="plan" value="school_single" />
-              <button className="btn">スクールに入る（{m.is_student && m.student_status !== "rejected" ? "25,000" : "50,000"}円・一括）</button>
-            </form>
+            <div className="row">
+              <form method="post" action="/api/checkout">
+                <input type="hidden" name="plan" value="school_single" />
+                <button className="btn">一括で入る（{m.is_student && m.student_status !== "rejected" ? "25,000" : "50,000"}円）</button>
+              </form>
+              <form method="post" action="/api/checkout">
+                <input type="hidden" name="plan" value="school_single" />
+                <input type="hidden" name="pay" value="split" />
+                <button className="btn ghost">2回に分けて入る（月{m.is_student && m.student_status !== "rejected" ? "12,500" : "25,000"}円×2）</button>
+              </form>
+            </div>
             <p className="muted" style={{ marginTop: 8 }}>4ヶ月目から月{m.is_student ? "1,990" : "3,980"}円の専門コースに自動で切り替わります（いつでも解約できます）。</p>
           </div>
         </>

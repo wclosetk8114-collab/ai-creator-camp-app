@@ -45,6 +45,12 @@ export const PLANS = {
     regular: { first: 50000, monthly: 0, months: 0, total: 50000 },
     student: { first: 25000, monthly: 0, months: 0, total: 25000 },
   },
+  school_single2: {
+    label: "スクール（ツール購入後に追加・分割）",
+    summary: "ツールを持っている人が、あとからスクールに入る（2回払い）",
+    regular: { first: 25000, monthly: 25000, months: 1, total: 50000 },
+    student: { first: 12500, monthly: 12500, months: 1, total: 25000 },
+  },
 } as const;
 
 export const CONT_PRICE = { regular: 3980, student: 1990 };

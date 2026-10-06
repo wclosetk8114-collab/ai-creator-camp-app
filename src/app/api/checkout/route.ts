@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   const f = await req.formData();
-  if (f.get("plan") === "school_single") return upgrade();
+  if (f.get("plan") === "school_single") return upgrade(f.get("pay") === "split");
   const plan = String(f.get("plan") || "");
   const email = String(f.get("email") || "").trim().toLowerCase();
   const name = String(f.get("name") || "").trim().slice(0, 80);
@@ -69,7 +69,7 @@ export async function POST(req: Request) {
 }
 
 // ツールを買った人が、あとからスクールに入る（一括5万／学生2.5万。4ヶ月目から専門コース）
-async function upgrade() {
+async function upgrade(split: boolean) {
   const m = await getMember();
   if (!m) return NextResponse.redirect(`${appUrl()}/login`, 303);
   const back = (msg: string) => NextResponse.redirect(`${appUrl()}/me?e=${encodeURIComponent(msg)}`, 303);
@@ -78,19 +78,21 @@ async function upgrade() {
   if (!ctx) return back("ただいま決済の準備中です");
   const { stripe, s } = ctx;
   const student = m.is_student && m.student_status !== "rejected";
-  const one = s[student ? "price_school_single_student" : "price_school_single"];
-  const cont = s[student ? "price_cont_student" : "price_cont"];
-  if (!one || !cont) return back("ただいま決済の準備中です");
-  const metadata = { plan: "school_single", student: student ? "1" : "0", name: m.name, ref: m.referrer };
+  const suf = student ? "_student" : "";
+  const one = s[`price_school_single${suf}`];
+  const two = s[`price_school_single2${suf}`];
+  const cont = s[`price_cont${suf}`];
+  if (!cont || (split ? !two : !one)) return back("ただいま決済の準備中です");
+  const metadata = { plan: split ? "school_single2" : "school_single", student: student ? "1" : "0", name: m.name, ref: m.referrer };
   try {
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       ...(m.stripe_customer_id ? { customer: m.stripe_customer_id } : { customer_email: m.email }),
       metadata,
       locale: "ja",
-      line_items: [{ price: one, quantity: 1 }, { price: cont, quantity: 1 }],
-      // スクール代は一括。専門コース（月額）は90日後から
-      subscription_data: { metadata, trial_period_days: 90 },
+      // 一括：スクール代＋専門コース（90日後から）／分割：月25,000円×2 → 4ヶ月目から専門コースに自動で切替
+      line_items: split ? [{ price: two, quantity: 1 }] : [{ price: one, quantity: 1 }, { price: cont, quantity: 1 }],
+      subscription_data: split ? { metadata } : { metadata, trial_period_days: 90 },
       success_url: `${appUrl()}/me?upgraded=1`,
       cancel_url: `${appUrl()}/me`,
     });

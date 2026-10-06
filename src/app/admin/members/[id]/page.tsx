@@ -34,6 +34,7 @@ export default async function MemberDetail({ params }: { params: Promise<{ id: s
               <option value="school_a">スクールつき・分割</option>
               <option value="school_b">スクールつき・月額</option>
               <option value="school_single">スクール（ツール購入後に追加）</option>
+              <option value="school_single2">スクール（ツール購入後に追加・分割）</option>
               <option value="tool">ツールのみ</option>
             </select></div>
           <div><label>状態</label>

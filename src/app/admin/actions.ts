@@ -36,7 +36,7 @@ const SETTING_KEYS = [
   "tool_download_url", "tool_guide_url", "admin_email", "ai_model",
   "price_tool", "price_tool_student", "price_school_a", "price_school_a_student",
   "price_school_b", "price_school_b_student", "price_cont", "price_cont_student",
-  "price_school_single", "price_school_single_student",
+  "price_school_single", "price_school_single_student", "price_school_single2", "price_school_single2_student",
 ];
 
 export async function saveSettings(fd: FormData) {
