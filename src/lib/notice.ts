@@ -31,7 +31,7 @@ const SUBJECT: Record<NoticeDay, string> = {
 export async function runWeeklyNotice(day: NoticeDay, opts: { force?: boolean } = {}) {
   const s = await getSettings();
   if (s.notice_enabled !== "1" && !opts.force) return { skipped: "disabled" };
-  const useMail = s.notice_email !== "0";
+  const useMail = s.notice_email !== "0" && day === "mon"; // メールは月曜（今週の課題）だけ
   if (!s.line_access_token && !useMail) return { skipped: "line not configured" };
   const members = (await sql<Member[]>`
     select * from camp.members where status <> 'canceled' and plan <> 'tool'`).filter(hasSchool);
