@@ -100,11 +100,12 @@ export default function Home() {
       <section className="lp-sec">
         <p className="lp-label">ONE WEEK</p>
         <h2>週にだいたい5〜8時間。</h2>
-        <p className="lead">働きながらでも続けられる量です。自分のペースで進めて、できたらLINEで出す。それだけです。</p>
+        <p className="lead">働きながらでも続けられる量です。1週間の流れは決まっていて、LINEが毎週声をかけてくれます。</p>
         <div className="lp-grid">
-          <div className="card"><h3>課題を見る</h3><p className="muted">LINEで「いまの課題」と送ると、今やることが出ます。</p></div>
-          <div className="card"><h3>手を動かす</h3><p className="muted">ツールに話しかけて作る。詰まったらすぐLINEで質問。</p></div>
-          <div className="card"><h3>出す</h3><p className="muted">「提出」→ 送る →「以上」。合否はすぐ返ってきます。</p></div>
+          <div className="card"><span className="lp-num">月</span><h3>課題が届く</h3><p className="muted">今週の課題がLINEに届きます。「いまの課題」でいつでも見返せます。</p></div>
+          <div className="card"><span className="lp-num">火〜木</span><h3>手を動かす</h3><p className="muted">ツールに話しかけて作る。詰まったらLINEでAIに相談（スクショでもOK）。</p></div>
+          <div className="card"><span className="lp-num">金</span><h3>途中を見せる</h3><p className="muted">途中のものをAIに見せて、足りないところを聞きます。</p></div>
+          <div className="card"><span className="lp-num">土日</span><h3>提出する</h3><p className="muted">「提出」→ 送る →「以上」。合格なら次のステージが届きます。</p></div>
         </div>
       </section>
 
@@ -115,10 +116,10 @@ export default function Home() {
         <div className="lp-grid">
           {[
             ["開発ツール一式", "Claudeに差し込むプラグイン＋手順書。動画・画像・ナレーション・LP・アプリ・資料が、話しかけるだけで作れます。"],
-            ["自分の商品", "誰の困りごとを、いくらで解決するか。試作品まで形にします。"],
+            ["なんでも作れる手", "Webページ・資料・画像・動画・声・アプリ。Month1で、ひと通り自分で作れるようになります。"],
+            ["自分のビジネス一式", "事業・サービス設計・名前とロゴ・SNS・仕事に使うアプリまで、Month2でそろえます。"],
             ["LPと申し込みの入口", "お客さんが申し込める状態で、世に出します。"],
             ["発信と、最初の反応", "7日間の発信と、3人以上への案内の記録。"],
-            ["90日の制作記録", "提出したものが、そのまま実績になります。"],
             ["仲間", "月1回のリアルの場で、同じ90日を走る人と会えます。"],
           ].map(([t, d]) => (
             <div className="card" key={t}><h3>{t}</h3><p className="muted">{d}</p></div>
