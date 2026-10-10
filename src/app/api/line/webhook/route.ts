@@ -39,14 +39,14 @@ export async function POST(req: Request) {
   return NextResponse.json({ ok: true });
 }
 
-const HELP = `使い方
-・導入 … ツールの入れ方を1ステップずつ（終わったら「できた」）
-・提出 … 課題を出す（文章・URL・画像OK。最後に「以上」）
-・いまの課題 … 今のステージを見る
-・交流会 … 月1回のリアル相談会・交流会
-・マイページ … ツールの受け取り・進み具合
-・スタッフ … 運営の人につなぐ
-・それ以外 … なんでもAIに相談できます（24時間）`;
+const HELP = `📖 このLINEの使い方
+🔧 導入 … ツールの入れ方を1ステップずつ（終わったら「できた」）
+📮 提出 … 課題を出す（文章・URL・画像OK。最後に「以上」）
+📍 いまの課題 … 今のステージを見る
+🤝 交流会 … 月1回のリアル相談会・交流会
+🏠 マイページ … ツールの受け取り・進み具合
+🙋 スタッフ … 運営の人につなぐ
+💬 それ以外 … なんでも気軽に相談してね（24時間OK）`;
 
 async function handle(ev: LineEvent, s: Settings) {
   const token = s.line_access_token;
@@ -56,9 +56,9 @@ async function handle(ev: LineEvent, s: Settings) {
   let say = (msgs: LineMessage[]) => reply(token, rt, msgs);
 
   if (ev.type === "follow") {
-    return say([text(`友だち追加ありがとうございます。AI Creator Camp です。
+    return say([text(`友だち追加ありがとうございます☺️ AI Creator Camp です！
 
-はじめに、マイページに出ている「6けたの連携コード」をこのトークに送ってください。
+はじめに、マイページに出ている「6けたの連携コード」をこのトークに送ってくださいね📩
 マイページ：${appUrl()}/me
 
 まだお申し込みでない方はこちら：${appUrl()}/join`)]);
@@ -74,11 +74,13 @@ async function handle(ev: LineEvent, s: Settings) {
     const r = await sql<Member[]>`
       update camp.members set line_user_id = ${uid}
       where line_link_code = ${link[1]} returning *`;
-    if (!r.length) return say([text("コードが見つかりませんでした。マイページの6けたのコードを、もう一度確かめてください。")]);
+    if (!r.length) return say([text("あれ、コードが見つかりませんでした🙏 マイページの6けたのコードを、もう一度確かめてみてください。")]);
     await sql`update camp.members set line_user_id = null where line_user_id = ${uid} and id <> ${r[0].id}`;
     const m = r[0];
     return say([
-      text(`${m.name || ""}さん、連携できました。これからはこのLINEで、ツールの導入も、課題の提出も、相談も全部できます。まずはツールの準備から、1ステップずつ進めます。`),
+      text(`${m.name || ""}さん、連携できました🎉
+これからはこのLINEで、ツールの導入も、課題の提出も、相談も全部できます✨
+まずはツールの準備から、1ステップずつ一緒に進めましょう👍`),
       text(await statusText(m)),
       text(HELP),
     ]);
@@ -87,7 +89,7 @@ async function handle(ev: LineEvent, s: Settings) {
   const mrows = await sql<Member[]>`select * from camp.members where line_user_id = ${uid}`;
   const m = mrows[0];
   if (!m) {
-    return say([text(`まだ会員情報とつながっていません。
+    return say([text(`まだ会員情報とつながっていないみたいです🙏
 マイページにログインして、出てくる6けたの「連携コード」をここに送ってください。
 ${appUrl()}/login`)]);
   }
@@ -95,7 +97,7 @@ ${appUrl()}/login`)]);
   if (m.pending_notice) {
     const notice = m.pending_notice;
     await sql`update camp.members set pending_notice = '' where id = ${m.id}`;
-    say = (msgs: LineMessage[]) => reply(token, rt, [text(`【今週のお知らせ】\n${notice}`), ...msgs].slice(0, 5));
+    say = (msgs: LineMessage[]) => reply(token, rt, [text(`📢 今週のお知らせ\n${notice}`), ...msgs].slice(0, 5));
   }
   if (m.status === "canceled") {
     return say([text(`ご利用が終了しています。再開はこちらから：${appUrl()}/join\nご不明点はメールでお問い合わせください。`)]);
@@ -116,7 +118,7 @@ ${appUrl()}/login`)]);
       await sql`update camp.members set student_status = 'pending' where id = ${m.id}`;
       await sql`insert into camp.tickets (member_id, line_user_id, kind, content, image_id)
         values (${m.id}, ${uid}, 'student_id', '学生証の確認をお願いします', ${msg.id})`;
-      return say([text("学生証を受け取りました。運営が確認します。確認できたらこのLINEでお知らせします。")]);
+      return say([text("学生証、受け取りました🙆 運営が確認して、このLINEでお知らせしますね。")]);
     }
     if (t === "キャンセル") { await setMode(""); return say([text("学生証の受付をやめました。")]); }
     return say([text("学生証の写真を送ってください（やめるときは「キャンセル」）。")]);
@@ -126,7 +128,7 @@ ${appUrl()}/login`)]);
   if (st.mode === "submit") {
     if (t === "キャンセル") { await setMode(""); return say([text("提出をやめました。")]); }
     if (t === "以上" || t === "提出する" || t === "送信") {
-      if (!st.draft && !st.image_ids.length) return say([text("まだ何も届いていません。文章・URL・画像を送ってから「以上」と送ってください。")]);
+      if (!st.draft && !st.image_ids.length) return say([text("まだ何も届いていないみたいです👀 文章・URL・画像を送ってから「以上」と送ってね。")]);
       await setMode("");
       const images = (await Promise.all(st.image_ids.slice(0, 5).map((id) => getContent(token, id)))).filter(
         (x): x is { data: Buffer; type: string } => !!x,
@@ -138,11 +140,11 @@ ${appUrl()}/login`)]);
     }
     if (msg.type === "image") {
       await setMode("submit", st.draft, [...st.image_ids, msg.id]);
-      return say([text(`画像を受け取りました（${st.image_ids.length + 1}枚目）。続けて送るか、最後に「以上」と送ってください。`)]);
+      return say([text(`📸 画像を受け取りました（${st.image_ids.length + 1}枚目）。続けて送るか、最後に「以上」と送ってね。`)]);
     }
     if (msg.type === "text") {
       await setMode("submit", (st.draft ? st.draft + "\n" : "") + (msg.text || ""), st.image_ids);
-      return say([text("受け取りました。続けて送るか、全部送ったら「以上」と送ってください。")]);
+      return say([text("👌 受け取りました！続けて送るか、全部送ったら「以上」と送ってね。")]);
     }
     return say([text("文章・URL・画像で送ってください。動画はURL（YouTubeやGoogleドライブなど）でお願いします。")]);
   }
@@ -153,13 +155,13 @@ ${appUrl()}/login`)]);
     const stage = await currentStage(m);
     if (!stage) return say([text(await statusText(m))]);
     await setMode("submit");
-    return say([text(`Stage ${stage.no}「${stage.title}」の提出を受け付けます。
+    return say([text(`📮 Stage ${stage.no}「${stage.title}」の提出、受け付けます！
 
-■ 課題
+✏️ 課題
 ${stage.task}
 
 文章・URL・画像を、何回かに分けて送ってOKです。
-全部送ったら「以上」と送ってください。AIがすぐ審査します。
+全部送ったら「以上」と送ってね。すぐに確認します⏱️
 （やめるときは「キャンセル」）`)]);
   }
   if (["導入", "ツール導入", "ツールの入れ方", "セットアップ"].includes(t)) {
@@ -173,7 +175,7 @@ ${stage.task}
       await log("assistant", msgText);
       return say(texts(msgText));
     }
-    if (hasSchool(m)) return say([text("課題ができたら「提出」と送って、提出物を送ってください。")]);
+    if (hasSchool(m)) return say([text("課題ができたら「提出」と送って、提出物を送ってね📮")]);
   }
   if (["いまの課題", "今の課題", "課題", "カリキュラム", "ステージ"].includes(t)) {
     return say(texts(await statusText(m)));
@@ -189,7 +191,7 @@ ${stage.task}
   }
   if (t === "交流会" || t === "相談会") {
     const evs = await upcomingEvents(3);
-    if (!evs.length) return say([text("次の交流会は準備中です。決まったらこのLINEでお知らせします。")]);
+    if (!evs.length) return say([text("次の交流会は準備中です🗓️ 決まったらこのLINEでお知らせしますね！")]);
     const body = evs
       .map((e) => `■ ${e.title}\n${fmtDate(e.starts_at)}\n${e.place}${e.url ? `\n${e.url}` : ""}${e.description ? `\n${e.description}` : ""}\n参加する→「参加 ${e.id}」`)
       .join("\n\n");
@@ -202,7 +204,7 @@ ${stage.task}
     if (!ev.length) return say([text("その番号の会が見つかりませんでした。「交流会」と送ると一覧が出ます。")]);
     await sql`insert into camp.rsvps (event_id, member_id, status) values (${ev[0].id}, ${m.id}, ${status})
       on conflict (event_id, member_id) do update set status = excluded.status`;
-    return say([text(status === "yes" ? `「${ev[0].title}」（${fmtDate(ev[0].starts_at)}）参加で受け付けました。前日にリマインドを送ります。` : "不参加で受け付けました。")]);
+    return say([text(status === "yes" ? `「${ev[0].title}」（${fmtDate(ev[0].starts_at)}）参加で受け付けました🙌 前日にリマインドを送りますね。` : "不参加で受け付けました。また次の機会にぜひ☺️")]);
   }
   const tr = t.match(/^専門 ?(.+)$/);
   if (tr) {
@@ -211,7 +213,7 @@ ${stage.task}
   }
   if (t === "スタッフ" || t.includes("人と話したい") || t.includes("運営に")) {
     await sql`insert into camp.tickets (member_id, line_user_id, kind, content) values (${m.id}, ${uid}, 'human', ${t})`;
-    return say([text("運営スタッフに伝えました。順番にお返事します（少しお時間をいただくことがあります）。\nその間も、AIへの相談はいつでもどうぞ。")]);
+    return say([text("🙋 運営スタッフに伝えました！順番にお返事しますね（少しお時間をいただくことがあります）。\nその間も、相談はいつでもどうぞ☺️")]);
   }
 
   // ===== それ以外はAI相談 =====

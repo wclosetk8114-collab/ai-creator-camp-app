@@ -87,11 +87,12 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         </div>
 
         <div className="card">
-          <h3>⑤ 週のお知らせ（LINE）</h3>
+          <h3>⑤ 週のお知らせ（LINE＋メール）</h3>
           <p className="muted">月・金・土の朝9時に、スクールの人へ自動で送ります。{"{name}"}＝名前、{"{stage}"}＝その人のいまの課題。<br />
           今月こちらから送れる残り：{left === null ? "不明" : left >= 100000 ? "上限なし" : `${left}通`}（無料プランは月200通。返信は数に入りません）</p>
           <input type="hidden" name="notice_form" value="1" />
           <label className="check"><input type="checkbox" name="notice_enabled" value="1" defaultChecked={s.notice_enabled === "1"} /> 自動で送る</label>
+          <label className="check"><input type="checkbox" name="notice_email" value="1" defaultChecked={s.notice_email !== "0"} /> メール（申し込み時のアドレス）にも送る（合格時の次の課題も）</label>
           <label>送り方</label>
           <select name="notice_mode" defaultValue={s.notice_mode || "auto"}>
             <option value="auto">残りがあるうちは送る → 足りなくなったら、次に話しかけてきたときの返信に乗せる</option>

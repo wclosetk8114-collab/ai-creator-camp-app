@@ -1,6 +1,7 @@
 import { sql, type Member, type Stage } from "./db";
 import { gradeSubmission, type Grade } from "./ai";
-import { appUrl, TRACKS } from "./settings";
+import { appUrl, getSettings, TRACKS } from "./settings";
+import { sendMail } from "./mail";
 
 export function hasSchool(m: Member) {
   return m.plan !== "tool" && m.status !== "canceled";
@@ -28,14 +29,16 @@ export async function currentStage(m: Member): Promise<Stage | null> {
 
 export function stageText(s: Stage, m?: Member) {
   const head = s.track === "core" ? `Month${s.month}・Stage ${s.no}` : `${TRACKS[s.track] || s.track}・Stage ${s.no}`;
-  return `【${head}】${s.title}
+  const hi = m?.name ? `${m.name}さん、` : "";
+  return `📍${head}「${s.title}」
 
-${s.body}
+${hi}${s.body}
 
-■ 課題
+✏️ 今回の課題
 ${s.task}
 
-できたら「提出」と送ってください。${m ? "" : ""}`;
+できたら「提出」と送ってね📮
+わからないところは、そのままLINEで聞いてください☺️`;
 }
 
 /** ツール導入（プラグインまで）のいまのステップ。終わっていれば null */
@@ -44,56 +47,58 @@ export async function currentSetup(m: Member): Promise<Stage | null> {
 }
 
 export async function setupText(s: Stage, total: number) {
-  return `【ツール導入 ${s.no}/${total}】${s.title}
+  return `🔧 ツールの準備 ${s.no}/${total}「${s.title}」
 
 ${s.body}
 
-■ やること
+👉 やること
 ${s.task}
 
-わからないときは、画面のスクショやそのまま質問を送ってください。`;
+終わったら「できた」と送ってね👍
+つまずいたら、画面のスクショをそのまま送ってくれればOKです📸`;
 }
 
 /** 「できた」で導入を1つ進める。次に送る文を返す */
 export async function advanceSetup(m: Member): Promise<string> {
   const total = await stageCount("setup");
-  if (m.setup_step > total) return "ツールの準備はもう完了しています。";
+  if (m.setup_step > total) return "ツールの準備はもう完了してますよ👌";
   const next = m.setup_step + 1;
   await sql`update camp.members set setup_step = ${next} where id = ${m.id}`;
   if (next > total) {
     if (hasSchool(m)) {
       const st = await getStage(m.track, m.current_stage);
-      return `ツールの準備、完了です。おつかれさまでした。\nここからスクールの課題に進みます。\n\n` + (st ? stageText(st) : "");
+      return `🎉 ツールの準備、完了です！おつかれさまでした🙌\nここからいよいよスクールの課題に進みます🔥\n\n` + (st ? stageText(st) : "");
     }
-    return `ツールの準備、完了です。おつかれさまでした。
-これで、話しかけるだけで動画・画像・LP・アプリが作れます。作りたいものがあれば、このLINEで相談してください。
+    return `🎉 ツールの準備、完了です！おつかれさまでした🙌
+これで、話しかけるだけで動画・画像・LP・アプリが作れます✨
+作りたいものがあれば、いつでもこのLINEで相談してくださいね☺️
 
-90日で事業をつくるスクールに入る場合は、マイページから申し込めます（50,000円・学生25,000円）。
+📚 90日で事業をつくるスクールに入る場合は、マイページから申し込めます（50,000円・学生25,000円）。
 ${appUrl()}/me`;
   }
   const ns = await getStage("setup", next);
-  return "OKです。次のステップです。\n\n" + (ns ? await setupText(ns, total) : "");
+  return "👌 OKです！次のステップにいきましょう\n\n" + (ns ? await setupText(ns, total) : "");
 }
 
 export async function statusText(m: Member): Promise<string> {
   const setup = await currentSetup(m);
   if (setup) return setupText(setup, await stageCount("setup"));
   if (!hasSchool(m)) {
-    return `ツールの準備は完了しています。使い方は、なんでもこのLINEで聞いてください。
-スクールに入る場合はマイページから：${appUrl()}/me`;
+    return `ツールの準備は完了してます👌 使い方は、なんでもこのLINEで聞いてくださいね☺️
+📚 スクールに入る場合はマイページから：${appUrl()}/me`;
   }
   const s = await currentStage(m);
   if (s) return stageText(s, m);
   if (m.track === "core" && m.core_completed) {
-    return `基礎の90日は修了しています。おつかれさまでした。
-次は専門コースを選んでください。送る言葉：
+    return `🎓 基礎の90日は修了しています。ほんとうにおつかれさまでした！
+次は専門コースを選んでね👇 送る言葉：
 ・専門 動画
 ・専門 アプリ
 ・専門 自動化
 ・専門 アート`;
   }
-  return `「${TRACKS[m.track] || m.track}」の課題はすべて合格しています。
-別の専門に進むなら「専門 動画／アプリ／自動化／アート」と送ってください。`;
+  return `🏆「${TRACKS[m.track] || m.track}」の課題はすべて合格しています！
+別の専門に進むなら「専門 動画／アプリ／自動化／アート」と送ってね😊`;
 }
 
 export const TRACK_WORDS: Record<string, string> = {
@@ -107,7 +112,7 @@ export async function chooseTrack(m: Member, track: string): Promise<string> {
   if (!TRACKS[track]) return "選べるのは「動画／アプリ／自動化／アート」の4つです。";
   await sql`update camp.members set track = ${track}, current_stage = 1 where id = ${m.id}`;
   const s = await getStage(track, 1);
-  return `専門「${TRACKS[track]}」に進みました。\n\n` + (s ? stageText(s) : "課題を準備中です。");
+  return `🚀 専門「${TRACKS[track]}」に進みました！\n\n` + (s ? stageText(s) : "課題を準備中です。");
 }
 
 /** 提出を審査して、合格なら次へ進める。受講生に送る文を返す */
@@ -131,10 +136,11 @@ export async function submitWork(
     return { message: grade.feedback, grade };
   }
   if (grade.verdict === "retry") {
-    return { message: `【もう一歩】Stage ${stage.no}「${stage.title}」\n\n${grade.feedback}\n\n直したら、もう一度「提出」と送ってください。`, grade };
+    return { message: `🙌 あと一歩です！ Stage ${stage.no}「${stage.title}」\n\n${grade.feedback}\n\n直したら、もう一度「提出」と送ってね📮 わからなければ気軽に聞いてください☺️`, grade };
   }
   const next = await advance(m, stage);
-  return { message: `【合格】Stage ${stage.no}「${stage.title}」\n\n${grade.feedback}\n\n${next}`, grade };
+  mailNext(m, stage, next).catch((e) => console.error("next stage mail failed", e));
+  return { message: `🎉 合格です！ Stage ${stage.no}「${stage.title}」\n\n${grade.feedback}\n\n${next}`, grade };
 }
 
 /** 合格処理：次のステージへ。次に送る文を返す */
@@ -144,17 +150,17 @@ export async function advance(m: Member, stage: Stage): Promise<string> {
   const nextNo = stage.no + 1;
   if (stage.track === "core" && nextNo > total) {
     await sql`update camp.members set current_stage = ${nextNo}, core_completed = true where id = ${m.id}`;
-    return `基礎の90日、修了です。ほんとうにおつかれさまでした。
-次は専門コースを選んでください。送る言葉：
+    return `🎓 基礎の90日、修了です！ほんとうにおつかれさまでした🎉
+次は専門コースを選んでね👇 送る言葉：
 ・専門 動画
 ・専門 アプリ
 ・専門 自動化
 ・専門 アート`;
   }
   await sql`update camp.members set current_stage = ${nextNo} where id = ${m.id}`;
-  if (nextNo > total) return `「${TRACKS[stage.track] || stage.track}」の課題はすべて合格です。別の専門にも進めます（「専門 動画」など）。`;
+  if (nextNo > total) return `🏆「${TRACKS[stage.track] || stage.track}」の課題はすべて合格です！別の専門にも進めます（「専門 動画」など）😊`;
   const ns = await getStage(stage.track, nextNo);
-  return ns ? "次のステージです。\n\n" + stageText(ns) : "";
+  return ns ? "👇 次のステージはこちら\n\n" + stageText(ns) : "";
 }
 
 export async function upcomingEvents(limit = 3) {
@@ -176,4 +182,16 @@ export async function newLinkCode(): Promise<string> {
     if (!r.length) return code;
   }
   throw new Error("could not create link code");
+}
+
+/** 合格したら、次の課題をメール（申し込み時のアドレス）にも送る */
+async function mailNext(m: Member, stage: Stage, next: string) {
+  if (!next || !m.email) return;
+  const s = await getSettings();
+  if (s.notice_email === "0") return;
+  await sendMail(
+    m.email,
+    `🎉【AI Creator Camp】Stage ${stage.no} 合格！次の課題が届きました`,
+    `${m.name || ""}さん\n\nStage ${stage.no}「${stage.title}」合格、おめでとうございます🎉\n\n${next}\n\n――――――\n提出や相談は公式LINEからどうぞ📱\nマイページ：${appUrl()}/me\n\nAI Creator Camp`,
+  );
 }

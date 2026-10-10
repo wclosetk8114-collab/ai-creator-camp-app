@@ -51,7 +51,10 @@ export async function saveSettings(fd: FormData) {
     if (val === "" && fd.get(`${k}__secret`) === "1") continue;
     await setSetting(k, val);
   }
-  if (fd.get("notice_form") === "1") await setSetting("notice_enabled", fd.get("notice_enabled") === "1" ? "1" : "0");
+  if (fd.get("notice_form") === "1") {
+    await setSetting("notice_enabled", fd.get("notice_enabled") === "1" ? "1" : "0");
+    await setSetting("notice_email", fd.get("notice_email") === "1" ? "1" : "0");
+  }
   // Stripeのキーが新しく入ったら、そのアカウントに価格とWebhookを自動で作る
   const after = (await getSettings()).stripe_secret_key;
   if (after && after !== before) {
@@ -84,7 +87,7 @@ export async function sendNoticeNow(fd: FormData) {
   const day = String(fd.get("day")) as "mon" | "fri" | "sat";
   const { runWeeklyNotice } = await import("@/lib/notice");
   const r = await runWeeklyNotice(day, { force: true });
-  const msg = "skipped" in r ? `送れませんでした（${r.skipped}）` : `${r.targets}人中、${r.pushed}人に送信／${r.queued}人は次の返信で届けます`;
+  const msg = "skipped" in r ? `送れませんでした（${r.skipped}）` : `LINE：${r.targets}人中、${r.pushed}人に送信／${r.queued}人は次の返信で届けます。メール：${r.mailed}人に送信`;
   redirect("/admin/settings?notice=" + encodeURIComponent(msg));
 }
 
