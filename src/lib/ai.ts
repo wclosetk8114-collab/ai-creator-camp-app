@@ -102,3 +102,24 @@ export async function mentorReply(
   const escalate = out.includes("[ESCALATE]");
   return { text: out.replace("[ESCALATE]", "").trim(), escalate };
 }
+
+/** 週のお知らせの文面を、毎回ちがう言い回し・励ます感じに書きかえる。{name}{stage} はそのまま残す */
+export async function rewriteNotice(day: "mon" | "fri" | "sat", tpl: string, last: string): Promise<string | null> {
+  const when = { mon: "月曜の朝（今週の課題が届く日）", fri: "金曜（途中のものを見せてもらう日）", sat: "土曜（週末・提出の日）" }[day];
+  const system = `あなたは「AI Creator Camp」の運営スタッフです。受講生に送る、${when}のLINEのお知らせを書きます。
+- 下の「元の文」と同じ目的・同じお願い（送ってほしい言葉や手順）を守りながら、言い回しを毎回変えて、励ます・背中を押す感じで書く。
+- 人が書いたような、あたたかい話し言葉。絵文字は3〜5個。季節や週の流れにふれてもよい。
+- 「提出」「以上」など、受講生に送ってほしい言葉は「」つきでそのまま残す。
+- {name} と {stage} が元の文にあれば、そのまま同じ形で残す（{stage} にはその人の課題が入る。前後に1行あける）。
+- 前回の文と同じ書き出し・同じフレーズは使わない。
+- {stage} 以外の部分は全部で5〜8行。出力はお知らせ本文だけ。`;
+  try {
+    const out = await ask(system, [{ type: "text", text: `【元の文】\n${tpl}\n\n【前回送った文】\n${last || "（なし）"}` }], [], 700);
+    const t = out.trim();
+    for (const ph of ["{name}", "{stage}"]) if (tpl.includes(ph) && !t.includes(ph)) return null;
+    return t || null;
+  } catch (e) {
+    console.error("rewriteNotice failed", e);
+    return null;
+  }
+}

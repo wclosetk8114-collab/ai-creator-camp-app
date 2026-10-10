@@ -54,6 +54,7 @@ export async function saveSettings(fd: FormData) {
   if (fd.get("notice_form") === "1") {
     await setSetting("notice_enabled", fd.get("notice_enabled") === "1" ? "1" : "0");
     await setSetting("notice_email", fd.get("notice_email") === "1" ? "1" : "0");
+    await setSetting("notice_vary", fd.get("notice_vary") === "1" ? "1" : "0");
   }
   // Stripeのキーが新しく入ったら、そのアカウントに価格とWebhookを自動で作る
   const after = (await getSettings()).stripe_secret_key;

@@ -3,6 +3,8 @@ import { getSettings, type Settings } from "./settings";
 import { push, quotaLeft, texts } from "./line";
 import { hasSchool, statusText } from "./camp";
 import { sendMail } from "./mail";
+import { rewriteNotice } from "./ai";
+import { setSetting } from "./settings";
 import { appUrl } from "./settings";
 
 // 週の告知：月（今週の課題）・金（途中チェック）・土（提出）。
@@ -16,8 +18,8 @@ export function noticeDayJST(now = new Date()): NoticeDay | null {
   return wd === 1 ? "mon" : wd === 5 ? "fri" : wd === 6 ? "sat" : null;
 }
 
-export async function buildNotice(m: Member, day: NoticeDay, s: Settings): Promise<string> {
-  const tpl = s[`notice_${day}`] || "";
+export async function buildNotice(m: Member, day: NoticeDay, s: Settings, override?: string): Promise<string> {
+  const tpl = override || s[`notice_${day}`] || "";
   const stage = tpl.includes("{stage}") ? await statusText(m) : "";
   return tpl.replaceAll("{name}", m.name || "").replaceAll("{stage}", stage).trim();
 }
@@ -39,8 +41,14 @@ export async function runWeeklyNotice(day: NoticeDay, opts: { force?: boolean } 
   const keep = Number(s.notice_keep || 20);
   let left = !s.line_access_token || s.notice_mode === "reply" ? 0 : Math.max(0, ((await quotaLeft(s.line_access_token)) ?? 0) - keep);
   let pushed = 0, queued = 0, mailed = 0;
+  // 毎回ちがう言い回しにする（AIが1回だけ書きかえて、全員に同じ文を使う。失敗したら元の文）
+  let tpl: string | undefined;
+  if (s.notice_vary !== "0" && s[`notice_${day}`]) {
+    tpl = (await rewriteNotice(day, s[`notice_${day}`], s[`notice_last_${day}`] || "")) || undefined;
+    if (tpl) await setSetting(`notice_last_${day}`, tpl);
+  }
   for (const m of members) {
-    const body = await buildNotice(m, day, s);
+    const body = await buildNotice(m, day, s, tpl);
     if (!body) continue;
     if (useMail && m.email) {
       const footer = `\n\n――――――\n提出や相談は公式LINEからどうぞ📱${m.line_user_id ? "" : `\nまだLINEとつないでいない場合は、マイページの手順でつないでね👇`}\nマイページ：${appUrl()}/me\n\nAI Creator Camp`;
