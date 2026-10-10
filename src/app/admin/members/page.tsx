@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { sql, type Member } from "@/lib/db";
 import { PLANS, TRACKS } from "@/lib/settings";
-import { addMember } from "../actions";
+import { addMember, bulkAddMembers } from "../actions";
 
 export const dynamic = "force-dynamic";
 
-export default async function Members({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
-  const { q = "" } = await searchParams;
+export default async function Members({ searchParams }: { searchParams: Promise<{ q?: string; msg?: string }> }) {
+  const { q = "", msg } = await searchParams;
   const like = `%${q}%`;
   const rows = await sql<Member[]>`
     select * from camp.members where ${q} = '' or email ilike ${like} or name ilike ${like}
@@ -14,6 +14,7 @@ export default async function Members({ searchParams }: { searchParams: Promise<
   return (
     <>
       <h1>会員（{rows.length}）</h1>
+      {msg && <div className="warnbox">{msg}</div>}
       <form className="row" style={{ marginBottom: 12 }}>
         <input type="text" name="q" defaultValue={q} placeholder="名前・メールで検索" style={{ maxWidth: 320 }} />
         <button className="btn small">検索</button>
@@ -50,6 +51,22 @@ export default async function Members({ searchParams }: { searchParams: Promise<
           </select>
           <label className="check" style={{ margin: 0 }}><input type="checkbox" name="is_student" value="1" /> 学生</label>
           <button className="btn small">追加</button>
+        </div>
+      </form>
+
+      <h2>まとめて追加（先にスタートしている人など）</h2>
+      <p className="muted">1行に1人、「名前, メールアドレス」で貼りつけてください。案内メールで、ログイン・公式LINE・連携コードの手順が届きます。</p>
+      <form action={bulkAddMembers} className="card">
+        <textarea name="list" required placeholder={"山田花子, hanako@example.com\n佐藤太郎, taro@example.com"} style={{ minHeight: 160 }} />
+        <div className="row" style={{ marginTop: 8, flexWrap: "wrap" }}>
+          <select name="plan" style={{ width: "auto" }}>
+            <option value="school_a">スクールつき・分割</option>
+            <option value="school_b">スクールつき・月額</option>
+            <option value="tool">ツールのみ</option>
+          </select>
+          <label className="check" style={{ margin: 0 }}><input type="checkbox" name="skip_setup" value="1" defaultChecked /> ツールの準備は済んでいる（Stage 1 から始める）</label>
+          <label className="check" style={{ margin: 0 }}><input type="checkbox" name="invite" value="1" defaultChecked /> 案内メールを送る</label>
+          <button className="btn small">まとめて追加</button>
         </div>
       </form>
     </>

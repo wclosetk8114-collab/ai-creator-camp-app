@@ -79,8 +79,8 @@ async function handle(ev: LineEvent, s: Settings) {
     const m = r[0];
     return say([
       text(`${m.name || ""}さん、連携できました🎉
-これからはこのLINEで、ツールの導入も、課題の提出も、相談も全部できます✨
-まずはツールの準備から、1ステップずつ一緒に進めましょう👍`),
+これからはこのLINEで、課題の提出も相談も全部できます✨
+${(await currentSetup(m)) ? "まずはツールの準備から、1ステップずつ一緒に進めましょう👍" : "さっそく、いまの課題を送りますね👇"}`),
       text(await statusText(m)),
       text(HELP),
     ]);
