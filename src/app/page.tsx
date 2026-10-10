@@ -104,7 +104,7 @@ export default function Home() {
         <div className="lp-grid">
           <div className="card"><span className="lp-num">月</span><h3>課題が届く</h3><p className="muted">今週の課題がLINEに届きます。「いまの課題」でいつでも見返せます。</p></div>
           <div className="card"><span className="lp-num">火〜木</span><h3>手を動かす</h3><p className="muted">ツールに話しかけて作る。詰まったらLINEでAIに相談（スクショでもOK）。</p></div>
-          <div className="card"><span className="lp-num">金</span><h3>途中を見せる</h3><p className="muted">途中のものをAIに見せて、足りないところを聞きます。</p></div>
+          <div className="card"><span className="lp-num">金</span><h3>途中を見せる</h3><p className="muted">途中のものを公式LINEに見せて、アドバイスをもらいます。オープンチャットでペアを組んでいる人は、ペアの相手にも見せ合います。</p></div>
           <div className="card"><span className="lp-num">土日</span><h3>提出する</h3><p className="muted">「提出」→ 送る →「以上」。合格なら次のステージが届きます。</p></div>
         </div>
       </section>
