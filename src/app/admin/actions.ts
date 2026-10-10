@@ -292,3 +292,58 @@ export async function broadcast(fd: FormData) {
   if (rows.length && s.line_access_token) await multicast(s.line_access_token, rows.map((r) => r.line_user_id), [text(body)]);
   redirect(`/admin?sent=${rows.length}`);
 }
+
+// ===== まとめて会員を追加（先にスタートしている人など） =====
+// 1行に「名前, メール」（タブ・スペース区切りもOK）。招待メールで、ログインとLINE連携の手順を送る。
+export async function bulkAddMembers(fd: FormData) {
+  await guard();
+  const lines = String(fd.get("list") || "").split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const plan = String(fd.get("plan") || "school_a");
+  const skipSetup = fd.get("skip_setup") === "1";
+  const sendInvite = fd.get("invite") === "1";
+  const { newLinkCode, stageCount } = await import("@/lib/camp");
+  const { sendMail } = await import("@/lib/mail");
+  const s = await getSettings();
+  const setupDone = skipSetup ? (await stageCount("setup")) + 1 : 1;
+  let added = 0, skipped = 0, mailed = 0;
+  const bad: string[] = [];
+  for (const line of lines) {
+    const email = (line.match(/[\w.+-]+@[\w-]+(\.[\w-]+)+/) || [""])[0].toLowerCase();
+    if (!email) { bad.push(line); continue; }
+    const name = line.replace(email, "").replace(/[,，、\t]/g, " ").replace(/<|>/g, "").trim().replace(/\s+/g, " ");
+    const code = await newLinkCode();
+    const r = await sql`insert into camp.members (email, name, plan, line_link_code, setup_step, notes)
+      values (${email}, ${name}, ${plan}, ${code}, ${setupDone}, '一括登録（先行スタート）')
+      on conflict (email) do nothing returning id`;
+    if (!r.length) { skipped++; continue; }
+    added++;
+    if (sendInvite) {
+      const ok = await sendMail(email, "📮【AI Creator Camp】ログインと公式LINEのご案内", `${name || ""}さん
+
+いつもありがとうございます☺️ AI Creator Camp です！
+今日から、課題の提出や相談を「公式LINE」と「マイページ」でできるようになりました🎉
+3ステップだけ、準備をお願いします👇
+
+① マイページにログイン
+${appUrl()}/login
+このメールアドレスを入れると、6けたのログインコードがメールで届きます📩
+
+② 公式LINEを友だち追加
+${s.line_friend_url || "（マイページのボタンから追加できます）"}
+
+③ マイページに出ている「6けたの連携コード」を、公式LINEのトークに送る
+あなたの連携コード：${code}
+
+つながったら、1週目の課題（Stage 1）が届きます✨
+できたものは公式LINEで「提出」と送って、そのまま送ってくださいね📮
+
+わからないところは、公式LINEでそのまま聞いてください☺️
+
+AI Creator Camp`);
+      if (ok) mailed++;
+    }
+  }
+  const msg = `${added}人を追加しました${sendInvite ? `（案内メール ${mailed}通）` : ""}。${skipped ? `すでに登録済み ${skipped}人。` : ""}${bad.length ? `読めなかった行：${bad.join(" / ")}` : ""}`;
+  revalidatePath("/admin/members");
+  redirect("/admin/members?msg=" + encodeURIComponent(msg));
+}
