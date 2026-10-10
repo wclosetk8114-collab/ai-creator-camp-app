@@ -98,3 +98,19 @@ export async function setupRichMenu(token: string, image: Buffer) {
   });
   return { ok: def.ok, detail: def.ok ? richMenuId : await def.text() };
 }
+
+/** 今月こちらから送れる残り通数（上限なしなら大きな数、取れなければ null） */
+export async function quotaLeft(token: string): Promise<number | null> {
+  try {
+    const h = { Authorization: `Bearer ${token}` };
+    const q = await fetch("https://api.line.me/v2/bot/message/quota", { headers: h });
+    const u = await fetch("https://api.line.me/v2/bot/message/quota/consumption", { headers: h });
+    if (!q.ok || !u.ok) return null;
+    const qj = (await q.json()) as { type: string; value?: number };
+    const uj = (await u.json()) as { totalUsage: number };
+    if (qj.type === "none") return 100000;
+    return Math.max(0, (qj.value ?? 0) - (uj.totalUsage ?? 0));
+  } catch {
+    return null;
+  }
+}

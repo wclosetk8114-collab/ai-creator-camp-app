@@ -1,5 +1,6 @@
 import { appUrl, getSettings } from "@/lib/settings";
-import { connectLine, saveSettings, setupStripe, testMail } from "../actions";
+import { connectLine, saveSettings, sendNoticeNow, setupStripe, testMail } from "../actions";
+import { quotaLeft } from "@/lib/line";
 
 export const dynamic = "force-dynamic";
 
@@ -28,9 +29,10 @@ function Plain({ name, label, value, help }: { name: string; label: string; valu
   );
 }
 
-export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ saved?: string; line?: string; stripe?: string; mail?: string }> }) {
+export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ saved?: string; line?: string; stripe?: string; mail?: string; notice?: string }> }) {
   const sp = await searchParams;
   const s = await getSettings();
+  const left = s.line_access_token ? await quotaLeft(s.line_access_token) : null;
   return (
     <>
       <h1>設定</h1>
@@ -38,6 +40,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       {sp.line && <div className="warnbox">{sp.line}</div>}
       {sp.stripe && <div className="warnbox">{sp.stripe}</div>}
       {sp.mail && <div className="warnbox">{sp.mail}</div>}
+      {sp.notice && <div className="warnbox">{sp.notice}</div>}
 
       <form action={saveSettings}>
         <div className="card">
@@ -84,11 +87,38 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         </div>
 
         <div className="card">
-          <h3>⑤ AI</h3>
+          <h3>⑤ 週のお知らせ（LINE）</h3>
+          <p className="muted">月・金・土の朝9時に、スクールの人へ自動で送ります。{"{name}"}＝名前、{"{stage}"}＝その人のいまの課題。<br />
+          今月こちらから送れる残り：{left === null ? "不明" : left >= 100000 ? "上限なし" : `${left}通`}（無料プランは月200通。返信は数に入りません）</p>
+          <input type="hidden" name="notice_form" value="1" />
+          <label className="check"><input type="checkbox" name="notice_enabled" value="1" defaultChecked={s.notice_enabled === "1"} /> 自動で送る</label>
+          <label>送り方</label>
+          <select name="notice_mode" defaultValue={s.notice_mode || "auto"}>
+            <option value="auto">残りがあるうちは送る → 足りなくなったら、次に話しかけてきたときの返信に乗せる</option>
+            <option value="reply">いつも返信に乗せる（通数を使わない）</option>
+          </select>
+          <Plain name="notice_keep" label="残しておく通数（個別メッセージ用）" value={s.notice_keep || "20"} />
+          <label>月曜：今週の課題</label><textarea name="notice_mon" defaultValue={s.notice_mon} style={{ minHeight: 110 }} />
+          <label>金曜：途中チェック</label><textarea name="notice_fri" defaultValue={s.notice_fri} style={{ minHeight: 90 }} />
+          <label>土曜：提出</label><textarea name="notice_sat" defaultValue={s.notice_sat} style={{ minHeight: 90 }} />
+        </div>
+
+        <div className="card">
+          <h3>⑥ AI</h3>
           <Plain name="ai_model" label="使うモデル" value={s.ai_model} help="審査と相談に使います。ふだんは触らなくてOK" />
         </div>
 
         <button className="btn">保存</button>
+      </form>
+
+      <form action={sendNoticeNow} className="card" style={{ marginTop: 16 }}>
+        <h3>週のお知らせを今すぐ送る</h3>
+        <p className="muted">⑤を保存してから押してください。曜日を待たずに、スクールの全員へ送ります。</p>
+        <div className="row">
+          <button className="btn small ghost" name="day" value="mon">月曜の分</button>
+          <button className="btn small ghost" name="day" value="fri">金曜の分</button>
+          <button className="btn small ghost" name="day" value="sat">土曜の分</button>
+        </div>
       </form>
 
       <form action={testMail} className="card" style={{ marginTop: 16 }}>

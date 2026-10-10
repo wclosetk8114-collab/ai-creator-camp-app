@@ -34,6 +34,7 @@ const SETTING_KEYS = [
   "stripe_secret_key", "stripe_webhook_secret",
   "mail_provider", "gas_mail_url", "gas_mail_secret", "resend_api_key", "mail_from",
   "tool_download_url", "tool_guide_url", "admin_email", "ai_model",
+  "notice_mode", "notice_keep", "notice_mon", "notice_fri", "notice_sat",
   "price_tool", "price_tool_student", "price_school_a", "price_school_a_student",
   "price_school_b", "price_school_b_student", "price_cont", "price_cont_student",
   "price_school_single", "price_school_single_student", "price_school_single2", "price_school_single2_student",
@@ -50,6 +51,7 @@ export async function saveSettings(fd: FormData) {
     if (val === "" && fd.get(`${k}__secret`) === "1") continue;
     await setSetting(k, val);
   }
+  if (fd.get("notice_form") === "1") await setSetting("notice_enabled", fd.get("notice_enabled") === "1" ? "1" : "0");
   // Stripeのキーが新しく入ったら、そのアカウントに価格とWebhookを自動で作る
   const after = (await getSettings()).stripe_secret_key;
   if (after && after !== before) {
@@ -75,6 +77,15 @@ export async function testMail() {
   const to = s.admin_email || "";
   const r = await sendMailDetail(to, "【AI Creator Camp】テストメール", "メール送信の設定はうまくいっています。\n\nAI Creator Camp");
   redirect("/admin/settings?mail=" + encodeURIComponent(r.ok ? `${to} にテストメールを送りました。届いているか確認してください。` : `送れませんでした：${r.detail}`));
+}
+
+export async function sendNoticeNow(fd: FormData) {
+  await guard();
+  const day = String(fd.get("day")) as "mon" | "fri" | "sat";
+  const { runWeeklyNotice } = await import("@/lib/notice");
+  const r = await runWeeklyNotice(day, { force: true });
+  const msg = "skipped" in r ? `送れませんでした（${r.skipped}）` : `${r.targets}人中、${r.pushed}人に送信／${r.queued}人は次の返信で届けます`;
+  redirect("/admin/settings?notice=" + encodeURIComponent(msg));
 }
 
 // 管理者が、その会員の画面をそのまま見る（メール不要）

@@ -3,6 +3,7 @@ import { sql } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { multicast, text } from "@/lib/line";
 import { fmtDate } from "@/lib/camp";
+import { noticeDayJST, runWeeklyNotice } from "@/lib/notice";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,6 +15,9 @@ export async function GET(req: Request) {
   }
   const s = await getSettings();
   if (!s.line_access_token) return NextResponse.json({ ok: true, skipped: "line not configured" });
+  // 週の告知（月・金・土の朝9時）
+  const day = noticeDayJST();
+  const weekly = day ? await runWeeklyNotice(day) : { skipped: "not a notice day" };
   const evs = await sql<{ id: number; title: string; starts_at: Date; place: string; url: string }[]>`
     select id, title, starts_at, place, url from camp.events
     where reminded = false and starts_at between now() and now() + interval '36 hours'`;
@@ -32,5 +36,5 @@ export async function GET(req: Request) {
     }
     await sql`update camp.events set reminded = true where id = ${e.id}`;
   }
-  return NextResponse.json({ ok: true, events: evs.length, sent });
+  return NextResponse.json({ ok: true, events: evs.length, sent, weekly });
 }

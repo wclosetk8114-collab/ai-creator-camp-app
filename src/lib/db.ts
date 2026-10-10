@@ -25,6 +25,7 @@ export type Member = {
   track: string;
   current_stage: number;
   setup_step: number;
+  pending_notice: string;
   core_completed: boolean;
   line_user_id: string | null;
   line_link_code: string | null;

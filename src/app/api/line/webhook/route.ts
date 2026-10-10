@@ -53,7 +53,7 @@ async function handle(ev: LineEvent, s: Settings) {
   const uid = ev.source?.userId;
   if (!uid || !ev.replyToken || !token) return;
   const rt = ev.replyToken;
-  const say = (msgs: LineMessage[]) => reply(token, rt, msgs);
+  let say = (msgs: LineMessage[]) => reply(token, rt, msgs);
 
   if (ev.type === "follow") {
     return say([text(`友だち追加ありがとうございます。AI Creator Camp です。
@@ -90,6 +90,12 @@ async function handle(ev: LineEvent, s: Settings) {
     return say([text(`まだ会員情報とつながっていません。
 マイページにログインして、出てくる6けたの「連携コード」をここに送ってください。
 ${appUrl()}/login`)]);
+  }
+  // 送れずに預かっていた週のお知らせがあれば、この返信の先頭に乗せる（返信は無料）
+  if (m.pending_notice) {
+    const notice = m.pending_notice;
+    await sql`update camp.members set pending_notice = '' where id = ${m.id}`;
+    say = (msgs: LineMessage[]) => reply(token, rt, [text(`【今週のお知らせ】\n${notice}`), ...msgs].slice(0, 5));
   }
   if (m.status === "canceled") {
     return say([text(`ご利用が終了しています。再開はこちらから：${appUrl()}/join\nご不明点はメールでお問い合わせください。`)]);
