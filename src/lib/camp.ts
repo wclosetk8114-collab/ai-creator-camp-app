@@ -1,7 +1,6 @@
 import { sql, type Member, type Stage } from "./db";
 import { gradeSubmission, type Grade } from "./ai";
-import { appUrl, getSettings, TRACKS } from "./settings";
-import { sendMail } from "./mail";
+import { appUrl, TRACKS } from "./settings";
 
 export function hasSchool(m: Member) {
   return m.plan !== "tool" && m.status !== "canceled";
@@ -139,7 +138,6 @@ export async function submitWork(
     return { message: `🙌 あと一歩です！ Stage ${stage.no}「${stage.title}」\n\n${grade.feedback}\n\n直したら、もう一度「提出」と送ってね📮 わからなければ気軽に聞いてください☺️`, grade };
   }
   const next = await advance(m, stage);
-  mailNext(m, stage, next).catch((e) => console.error("next stage mail failed", e));
   return { message: `🎉 合格です！ Stage ${stage.no}「${stage.title}」\n\n${grade.feedback}\n\n${next}`, grade };
 }
 
@@ -182,16 +180,4 @@ export async function newLinkCode(): Promise<string> {
     if (!r.length) return code;
   }
   throw new Error("could not create link code");
-}
-
-/** 合格したら、次の課題をメール（申し込み時のアドレス）にも送る */
-async function mailNext(m: Member, stage: Stage, next: string) {
-  if (!next || !m.email) return;
-  const s = await getSettings();
-  if (s.notice_email === "0") return;
-  await sendMail(
-    m.email,
-    `🎉【AI Creator Camp】Stage ${stage.no} 合格！次の課題が届きました`,
-    `${m.name || ""}さん\n\nStage ${stage.no}「${stage.title}」合格、おめでとうございます🎉\n\n${next}\n\n――――――\n提出や相談は公式LINEからどうぞ📱\nマイページ：${appUrl()}/me\n\nAI Creator Camp`,
-  );
 }
