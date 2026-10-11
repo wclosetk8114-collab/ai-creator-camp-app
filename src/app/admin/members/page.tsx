@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { sql, type Member } from "@/lib/db";
 import { PLANS, TRACKS } from "@/lib/settings";
-import { addMember, bulkAddMembers } from "../actions";
+import { addMember, bulkAddMembers, sendInvites } from "../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +52,12 @@ export default async function Members({ searchParams }: { searchParams: Promise<
           <label className="check" style={{ margin: 0 }}><input type="checkbox" name="is_student" value="1" /> 学生</label>
           <button className="btn small">追加</button>
         </div>
+      </form>
+
+      <h2>案内メール</h2>
+      <form action={sendInvites} className="card">
+        <p className="muted" style={{ marginTop: 0 }}>まだ公式LINEとつないでいない人全員に、ログイン・友だち追加・連携コードの案内メールを送ります。</p>
+        <button className="btn small">LINE未連携の人に案内メールを送る</button>
       </form>
 
       <h2>まとめて追加（先にスタートしている人など）</h2>

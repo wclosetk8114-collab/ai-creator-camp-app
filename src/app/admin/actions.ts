@@ -300,9 +300,8 @@ export async function bulkAddMembers(fd: FormData) {
   const lines = String(fd.get("list") || "").split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
   const plan = String(fd.get("plan") || "school_a");
   const skipSetup = fd.get("skip_setup") === "1";
-  const sendInvite = fd.get("invite") === "1";
+  const doInvite = fd.get("invite") === "1";
   const { newLinkCode, stageCount } = await import("@/lib/camp");
-  const { sendMail } = await import("@/lib/mail");
   const s = await getSettings();
   const setupDone = skipSetup ? (await stageCount("setup")) + 1 : 1;
   let added = 0, skipped = 0, mailed = 0;
@@ -317,8 +316,19 @@ export async function bulkAddMembers(fd: FormData) {
       on conflict (email) do nothing returning id`;
     if (!r.length) { skipped++; continue; }
     added++;
-    if (sendInvite) {
-      const ok = await sendMail(email, "📮【AI Creator Camp】ログインと公式LINEのご案内", `${name || ""}さん
+    if (doInvite) {
+      const ok = await sendInvite(email, name, code, s.line_friend_url);
+      if (ok) mailed++;
+    }
+  }
+  const msg = `${added}人を追加しました${doInvite ? `（案内メール ${mailed}通）` : ""}。${skipped ? `すでに登録済み ${skipped}人。` : ""}${bad.length ? `読めなかった行：${bad.join(" / ")}` : ""}`;
+  revalidatePath("/admin/members");
+  redirect("/admin/members?msg=" + encodeURIComponent(msg));
+}
+
+async function sendInvite(email: string, name: string, code: string, friendUrl: string) {
+  const { sendMail } = await import("@/lib/mail");
+  return sendMail(email, "📮【AI Creator Camp】ログインと公式LINEのご案内", `${name || ""}さん
 
 いつもありがとうございます☺️ AI Creator Camp です！
 今日から、課題の提出や相談を「公式LINE」と「マイページ」でできるようになりました🎉
@@ -329,21 +339,30 @@ ${appUrl()}/login
 このメールアドレスを入れると、6けたのログインコードがメールで届きます📩
 
 ② 公式LINEを友だち追加
-${s.line_friend_url || "（マイページのボタンから追加できます）"}
+${friendUrl || "（マイページのボタンから追加できます）"}
 
-③ マイページに出ている「6けたの連携コード」を、公式LINEのトークに送る
+③ 下の「連携コード」を、公式LINEのトークに送る
 あなたの連携コード：${code}
 
-つながったら、1週目の課題（Stage 1）が届きます✨
+つながったら、いまの課題が届きます✨
 できたものは公式LINEで「提出」と送って、そのまま送ってくださいね📮
 
 わからないところは、公式LINEでそのまま聞いてください☺️
 
 AI Creator Camp`);
-      if (ok) mailed++;
-    }
+}
+
+/** まだLINEとつないでいない人に、ログインとLINE連携の案内メールを送る */
+export async function sendInvites() {
+  await guard();
+  const s = await getSettings();
+  const { newLinkCode } = await import("@/lib/camp");
+  const rows = await sql<Member[]>`select * from camp.members where line_user_id is null and status <> 'canceled' and notes not like '%テスト%' and name not like '%テスト%'`;
+  let mailed = 0;
+  for (const m of rows) {
+    let code = m.line_link_code;
+    if (!code) { code = await newLinkCode(); await sql`update camp.members set line_link_code = ${code} where id = ${m.id}`; }
+    if (await sendInvite(m.email, m.name, code, s.line_friend_url)) mailed++;
   }
-  const msg = `${added}人を追加しました${sendInvite ? `（案内メール ${mailed}通）` : ""}。${skipped ? `すでに登録済み ${skipped}人。` : ""}${bad.length ? `読めなかった行：${bad.join(" / ")}` : ""}`;
-  revalidatePath("/admin/members");
-  redirect("/admin/members?msg=" + encodeURIComponent(msg));
+  redirect("/admin/members?msg=" + encodeURIComponent(`LINE未連携の${rows.length}人中、${mailed}人に案内メールを送りました。`));
 }
