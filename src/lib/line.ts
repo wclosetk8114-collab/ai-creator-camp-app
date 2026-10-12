@@ -10,14 +10,29 @@ export function verifyLineSignature(body: string, signature: string | null, chan
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
+/** LINEは装飾記号（**太字** や ## 見出し など）がそのまま出てしまうので消す */
+export function plain(t: string): string {
+  return t
+    .replace(/\*\*(.+?)\*\*/g, "$1")
+    .replace(/__(.+?)__/g, "$1")
+    .replace(/`{1,3}/g, "")
+    .replace(/^\s{0,3}#{1,6}\s*/gm, "")
+    .replace(/^\s*(-{3,}|\*{3,}|_{3,})\s*$/gm, "")
+    .replace(/^(\s*)[-*]\s+/gm, "$1・")
+    .replace(/\*/g, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 export function text(t: string): LineMessage {
+  t = plain(t);
   return { type: "text", text: t.length > 4900 ? t.slice(0, 4890) + "…" : t };
 }
 
 // LINEの1吹き出しは5000字まで。長文は分けて最大5通。
 export function texts(t: string): LineMessage[] {
   const out: LineMessage[] = [];
-  let rest = t;
+  let rest = plain(t);
   while (rest.length && out.length < 5) {
     out.push({ type: "text", text: rest.slice(0, 4800) });
     rest = rest.slice(4800);

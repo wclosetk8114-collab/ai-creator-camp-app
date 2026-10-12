@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { Member, Stage } from "./db";
 import { getSettings, TRACKS } from "./settings";
+import { plain } from "./line";
 
 const FALLBACK_MODELS = ["claude-sonnet-4-5", "claude-haiku-4-5"];
 
@@ -65,7 +66,7 @@ ${contentText || "（文章なし）"}
     if (!m) throw new Error("no json");
     const j = JSON.parse(m[0]) as { verdict: string; score?: number; feedback?: string };
     const verdict = j.verdict === "pass" ? "pass" : "retry";
-    return { verdict, feedback: String(j.feedback || "").trim(), score: typeof j.score === "number" ? j.score : null };
+    return { verdict, feedback: plain(String(j.feedback || "")), score: typeof j.score === "number" ? j.score : null };
   } catch (e) {
     console.error("grade failed", e);
     return { verdict: "pending", feedback: "審査がうまくいきませんでした。運営が確認して、あとでお返事します。", score: null };
@@ -88,6 +89,8 @@ export async function mentorReply(
   }${stage?.track === "setup" ? "（いまはツールの導入中。スクショが来たら、画面のどこを押すかを具体的に教える。終わったら『できた』と送るよう伝える）" : ""}
 【話し方】
 - 人間のスタッフがLINEで返しているような、あたたかい話し言葉（です・ます＋ときどき「〜してね」）。絵文字を1〜3個、自然に使う（☺️👍✨📮など。多すぎない）。
+- LINEなので、**太字**・#見出し・---区切り などのマークダウン記号は絶対に使わない。箇条書きは「・」か①②で書く。
+- 課題の内容は、上の「いまのステージ」の課題文をそのまま使う。課題を自分で作ったり、別のステージの課題を想像で書いたりしない。分からなければ「いまの課題」と送ってもらう。
 - やさしい日本語。短く。LINEなので3〜8行。箇条書きは3つまで。専門用語は言いかえる。
 - 具体的な次の一手を1つ示す。Claudeにそのまま貼れる指示文の例を出すと親切。
 - 課題の答えを丸ごと代わりに作らない。考え方と手順でサポートする。
@@ -112,10 +115,11 @@ export async function rewriteNotice(day: "mon" | "fri" | "sat", tpl: string, las
 - 「提出」「以上」など、受講生に送ってほしい言葉は「」つきでそのまま残す。
 - {name} と {stage} が元の文にあれば、そのまま同じ形で残す（{stage} にはその人の課題が入る。前後に1行あける）。
 - 前回の文と同じ書き出し・同じフレーズは使わない。
+- マークダウン記号（**、#、---）は使わない。
 - {stage} 以外の部分は全部で5〜8行。出力はお知らせ本文だけ。`;
   try {
     const out = await ask(system, [{ type: "text", text: `【元の文】\n${tpl}\n\n【前回送った文】\n${last || "（なし）"}` }], [], 700);
-    const t = out.trim();
+    const t = plain(out);
     for (const ph of ["{name}", "{stage}"]) if (tpl.includes(ph) && !t.includes(ph)) return null;
     return t || null;
   } catch (e) {
