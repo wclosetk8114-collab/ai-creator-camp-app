@@ -24,8 +24,8 @@ export const PLANS = {
   tool: {
     label: "ツールのみ",
     summary: "開発ツール一式（買い切り）",
-    regular: { first: 30000, monthly: 0, months: 0, total: 30000 },
-    student: { first: 15000, monthly: 0, months: 0, total: 15000 },
+    regular: { first: 33000, monthly: 0, months: 0, total: 33000 },
+    student: { first: 16500, monthly: 0, months: 0, total: 16500 },
   },
   school_a: {
     label: "スクールつき・分割",

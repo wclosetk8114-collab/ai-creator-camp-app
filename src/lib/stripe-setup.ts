@@ -5,6 +5,8 @@ import { appUrl, setSetting } from "./settings";
 // lookup_key で探すので、何回押しても重複しない。
 const CATALOG = [
   { key: "price_tool", name: "AI Creator Camp 開発ツール一式", amount: 30000, recurring: false, desc: "Claudeに差し込むプラグイン一式＋設定手順書（買い切り・税込）" },
+  { key: "price_tool_only", name: "AI Creator Camp 開発ツール一式（単品）", amount: 33000, recurring: false, desc: "ツールのみの購入（買い切り・税込）" },
+  { key: "price_tool_only_student", name: "AI Creator Camp 開発ツール一式（単品・学生）", amount: 16500, recurring: false, desc: "ツールのみ・学生価格（買い切り・税込）" },
   { key: "price_tool_student", name: "AI Creator Camp 開発ツール一式（学生）", amount: 15000, recurring: false, desc: "学生価格（買い切り・税込）" },
   { key: "price_school_a", name: "AI Creator Camp スクール（分割プラン）", amount: 10000, recurring: true, desc: "2・3ヶ月目に月10,000円。4ヶ月目から月3,980円の専門コースへ自動で切替（税込）" },
   { key: "price_school_a_student", name: "AI Creator Camp スクール（分割プラン・学生）", amount: 5000, recurring: true, desc: "学生価格。2・3ヶ月目に月5,000円（税込）" },

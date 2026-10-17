@@ -38,7 +38,7 @@ export default function JoinForm({ initialPlan, initialStudent, initialRef }: { 
         <label className="plan">
           <input type="radio" name="plan" value="tool" checked={plan === "tool"} onChange={() => setPlan("tool")} />
           <h3>ツールのみ</h3>
-          <div className="price">{f(30000 * k)}円 <small>買い切り</small></div>
+          <div className="price">{f(33000 * k)}円 <small>買い切り</small></div>
           <ul>
             <li>開発ツール一式（Claudeに差し込むプラグイン＋手順書）</li>
             <li>ツールの使い方は公式LINEでAIに相談できます</li>

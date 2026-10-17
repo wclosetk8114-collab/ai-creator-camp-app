@@ -44,7 +44,8 @@ export async function POST(req: Request) {
         ...base,
         mode: "payment",
         customer_creation: "always",
-        line_items: [{ price: p.tool, quantity: 1 }],
+        // ツールのみは単品価格（33,000円／学生16,500円）。スクールの初回ツール代は30,000円のまま
+        line_items: [{ price: s[student ? "price_tool_only_student" : "price_tool_only"] || p.tool, quantity: 1 }],
       });
     } else {
       session = await stripe.checkout.sessions.create({
