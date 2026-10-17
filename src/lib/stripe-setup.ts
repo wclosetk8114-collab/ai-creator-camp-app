@@ -16,9 +16,9 @@ const CATALOG = [
   { key: "price_school_single_student", name: "AI Creator Camp スクール（ツール購入者の追加・学生）", amount: 25000, recurring: false, desc: "学生価格（一括・税込）" },
   { key: "price_school_single2", name: "AI Creator Camp スクール（ツール購入者の追加・分割）", amount: 25000, recurring: true, desc: "ツール購入後にスクールへ入る場合の2回払い（月25,000円×2・税込）。4ヶ月目から月3,980円の専門コース" },
   { key: "price_school_single2_student", name: "AI Creator Camp スクール（ツール購入者の追加・分割・学生）", amount: 12500, recurring: true, desc: "学生価格（月12,500円×2・税込）" },
-  { key: "price_sns", name: "SNS自動化コース", amount: 10000, recurring: true, desc: "月10,000円×3ヶ月。4ヶ月目から月3,980円の専門コースへ自動で切替（税込）" },
-  { key: "price_sns_student", name: "SNS自動化コース（学生）", amount: 5000, recurring: true, desc: "学生価格。月5,000円×3ヶ月（税込）" },
-  { key: "price_sns_camp", name: "SNS自動化コース（キャンプ受講生）", amount: 7000, recurring: true, desc: "AI Creator Camp受講中の方。月7,000円×3ヶ月で終了（税込）" },
+  { key: "price_sns", name: "SNS自動化コース", amount: 10000, recurring: true, desc: "月10,000円×6ヶ月。7ヶ月目から月3,980円の専門コースへ自動で切替（税込）" },
+  { key: "price_sns_student", name: "SNS自動化コース（学生）", amount: 5000, recurring: true, desc: "学生価格。月5,000円×6ヶ月（税込）" },
+  { key: "price_sns_camp", name: "SNS自動化コース（キャンプ受講生）", amount: 7000, recurring: true, desc: "AI Creator Camp受講中の方。月7,000円×6ヶ月で終了（税込）" },
   { key: "price_cont", name: "AI Creator Camp 専門コース", amount: 3980, recurring: true, desc: "修了後の専門特化コース（月額・税込）" },
   { key: "price_cont_student", name: "AI Creator Camp 専門コース（学生）", amount: 1990, recurring: true, desc: "修了後の専門特化コース・学生価格（月額・税込）" },
 ];

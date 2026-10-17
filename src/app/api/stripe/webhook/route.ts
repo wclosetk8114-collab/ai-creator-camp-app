@@ -279,7 +279,7 @@ async function onSnsInvoicePaid(inv: Stripe.Invoice, subId: string, m0: Member, 
 
   const sub = await stripe.subscriptions.retrieve(subId);
   if (m.sns_plan === "sns_camp") {
-    // キャンプ受講生は3回で終了
+    // キャンプ受講生は6回で終了
     await stripe.subscriptions.update(subId, { cancel_at_period_end: true, metadata: { ...sub.metadata, stage: "done" } });
     await sql`update camp.members set sns_status = 'done' where id = ${m.id}`;
     return;
