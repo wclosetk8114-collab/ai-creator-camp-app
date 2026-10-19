@@ -192,7 +192,7 @@ async function onInvoicePaid(inv: Stripe.Invoice, stripe: Stripe, s: Record<stri
   }
 }
 
-// ---- SNS自動化コース ----
+// ---- AI×SNS自動化コース ----
 type SnsMember = Member & { sns_plan: string; sns_subscription_id: string | null; sns_invoices_paid: number; sns_status: string };
 
 async function onSnsCheckout(cs: Stripe.Checkout.Session, s: Record<string, string>) {
@@ -238,7 +238,7 @@ async function onSnsCheckout(cs: Stripe.Checkout.Session, s: Record<string, stri
   const lines = [
     `${member.name || ""}さん`,
     "",
-    "SNS自動化コースへのお申し込み、ありがとうございます。",
+    "AI×SNS自動化コースへのお申し込み、ありがとうございます。",
     `プラン：${label}${student ? "（学生）" : ""}`,
     "",
     "■ はじめにやること",
@@ -253,11 +253,11 @@ async function onSnsCheckout(cs: Stripe.Checkout.Session, s: Record<string, stri
     "",
     "AI Creator Camp",
   ];
-  await sendMail(email, "【SNS自動化コース】お申し込みありがとうございます", lines.filter((l) => l !== "").join("\n"));
+  await sendMail(email, "【AI×SNS自動化コース】お申し込みありがとうございます", lines.filter((l) => l !== "").join("\n"));
   if (s.admin_email) {
     await sendMail(
       s.admin_email,
-      `【SNS自動化・新規申込】${member.name || email}（${label}${student ? "・学生" : ""}）`,
+      `【AI×SNS自動化・新規申込】${member.name || email}（${label}${student ? "・学生" : ""}）`,
       `名前：${member.name}\nメール：${email}\nプラン：${label}${student ? "（学生）" : ""}\n金額：${yen(cs.amount_total || 0)}\n既存会員：${isNew ? "いいえ（ツールつきで新規登録）" : "はい"}\n紹介者：${md.ref || "-"}\n管理画面：${appUrl()}/admin/members/${member.id}`,
     );
   }
@@ -298,7 +298,7 @@ async function onSnsInvoicePaid(inv: Stripe.Invoice, subId: string, m0: Member, 
   await sql`update camp.members set sns_status = 'done' where id = ${m.id}`;
   if (m.line_user_id && s.line_access_token) {
     await push(s.line_access_token, m.line_user_id, [
-      text(`SNS自動化コースのお支払いは今回で完了です。ありがとうございました。
+      text(`AI×SNS自動化コースのお支払いは今回で完了です。ありがとうございました。
 次回から、専門コース（月${student ? "1,990" : "3,980"}円）に自動で切り替わります。`),
     ]);
   }

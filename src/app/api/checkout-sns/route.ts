@@ -6,7 +6,7 @@ import { SNS_FORM_URL, snsPriceKey, type SnsPlan } from "@/lib/sns";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// SNS自動化コースの決済（申し込みフォームは artigia リポの sns-apply.html）
+// AI×SNS自動化コースの決済（申し込みフォームは artigia リポの sns-apply.html）
 export async function POST(req: Request) {
   const f = await req.formData();
   const plan = String(f.get("plan") || "") as SnsPlan;
