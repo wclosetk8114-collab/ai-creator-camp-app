@@ -61,7 +61,12 @@ async function handle(ev: LineEvent, s: Settings) {
 はじめに、マイページに出ている「6けたの連携コード」をこのトークに送ってくださいね📩
 マイページ：${appUrl()}/me
 
-まだお申し込みでない方はこちら：${appUrl()}/join`)]);
+まだお申し込みでない方はこちら：${appUrl()}/join`),
+      text(`🎁 友だち追加の特典です
+「SNS発信タイプ診断」
+12問・約1分で、あなたに合う発信のかたちと向いているSNSがわかります。
+
+https://ai-creator-camp-theta.vercel.app/sns-shindan.html`)]);
   }
   if (ev.type !== "message" || !ev.message) return;
 
@@ -133,7 +138,26 @@ ${appUrl()}/login`)]);
       const images = (await Promise.all(st.image_ids.slice(0, 5).map((id) => getContent(token, id)))).filter(
         (x): x is { data: Buffer; type: string } => !!x,
       );
-      const res = await submitWork(m, st.draft.trim(), images);
+      // 「提出」と送る前に、URLや指示文を別のメッセージで送っている人が多い。
+      // 直近2時間のやりとりから、提出物になりえるものを拾って一緒に審査にかける。
+      const before = await sql<{ content: string }[]>`
+        select content from camp.messages
+        where line_user_id = ${uid} and role = 'user'
+          and created_at > now() - interval '2 hours'
+          and content not like ${"【提出】%"}
+        order by created_at desc limit 12`;
+      const skip = ["提出", "以上", "提出する", "送信", "課題提出", "課題を提出", "（画像）", "いまの課題"];
+      const extra = before
+        .map((r) => (r.content || "").trim())
+        .filter((c) => c && !skip.includes(c) && (/https?:\/\//.test(c) || c.length >= 15))
+        .filter((c) => !st.draft.includes(c))
+        .reverse()
+        .join("\n")
+        .slice(0, 1500);
+      const content = [st.draft.trim(), extra && `--- 直前のやりとり（同じ提出の一部の可能性があります）---\n${extra}`]
+        .filter(Boolean)
+        .join("\n\n");
+      const res = await submitWork(m, content, images);
       await log("user", `【提出】${st.draft.trim()}${images.length ? `（画像${images.length}枚）` : ""}`);
       await log("assistant", res.message);
       return say(texts(res.message));
