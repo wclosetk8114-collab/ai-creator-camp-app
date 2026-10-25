@@ -234,7 +234,7 @@ async function onSnsCheckout(cs: Stripe.Checkout.Session, s: Record<string, stri
   await sql`insert into camp.purchases (member_id, stripe_session_id, plan, is_student, amount)
     values (${member.id}, ${cs.id}, ${plan}, ${student}, ${cs.amount_total || 0}) on conflict (stripe_session_id) do nothing`;
 
-  const label = SNS_PLANS[plan].label + (md.promo === "oct2026" ? "（10月限定価格 月5,000円×6ヶ月）" : "");
+  const label = SNS_PLANS[plan].label + (md.promo === "oct2026" ? "（10月限定価格 月5,000円×6ヶ月" + (md.tool === "1" ? "＋ツール代33,000円" : "") + "）" : "");
   const lines = [
     `${member.name || ""}さん`,
     "",
