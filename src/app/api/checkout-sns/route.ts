@@ -14,6 +14,8 @@ export async function POST(req: Request) {
   const name = String(f.get("name") || "").trim().slice(0, 80);
   const ref = String(f.get("ref") || "").trim().slice(0, 80);
   const student = f.get("student") === "1" && plan === "sns";
+  // 説明会参加者向け 10月限定価格（月5,000円×6ヶ月）。2026/10/31 23:59（日本時間）まで
+  const promo = f.get("promo") === "oct2026" && plan === "sns" && Date.now() < Date.parse("2026-11-01T00:00:00+09:00");
   const back = (msg: string) => NextResponse.redirect(`${SNS_FORM_URL}?error=${encodeURIComponent(msg)}`, 303);
 
   if (!["sns", "sns_camp"].includes(plan)) return back("プランを選んでください");
@@ -24,9 +26,9 @@ export async function POST(req: Request) {
   const ctx = await getStripe();
   if (!ctx) return back("ただいま決済の準備中です");
   const { stripe, s } = ctx;
-  const price = s[snsPriceKey(plan, student)];
+  const price = s[snsPriceKey(plan, student || promo)];
   if (!price) return back("ただいま決済の準備中です");
-  const metadata = { course: "sns", plan, student: student ? "1" : "0", name, ref };
+  const metadata = { course: "sns", plan, student: student ? "1" : "0", name, ref, promo: promo ? "oct2026" : "" };
   try {
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
