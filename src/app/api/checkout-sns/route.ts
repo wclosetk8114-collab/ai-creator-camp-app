@@ -29,12 +29,11 @@ export async function POST(req: Request) {
   const { stripe, s } = ctx;
   const price = s[snsPriceKey(plan, student || promo)];
   if (!price) return back("ただいま決済の準備中です");
-  // 10月限定価格はツール別。まだ会員でない（＝ツールを持っていない）人には、ツール代 33,000円を初回に足す
+  // 10月限定価格はツール別。まだ会員でない（＝ツールを持っていない）人には、ツール代 10,000円を初回に足す
   let needTool = false;
   if (promo) {
     const rows = await sql<{ id: string }[]>`select id from camp.members where email = ${email} limit 1`;
     needTool = rows.length === 0;
-    if (needTool && !s.price_tool_only) return back("ただいま決済の準備中です");
   }
   const metadata = { course: "sns", plan, student: student ? "1" : "0", name, ref, promo: promo ? "oct2026" : "", tool: needTool ? "1" : "0" };
   try {
@@ -43,7 +42,9 @@ export async function POST(req: Request) {
       customer_email: email,
       metadata,
       locale: "ja",
-      line_items: needTool ? [{ price, quantity: 1 }, { price: s.price_tool_only, quantity: 1 }] : [{ price, quantity: 1 }],
+      line_items: needTool
+        ? [{ price, quantity: 1 }, { price_data: { currency: "jpy", unit_amount: 10000, product_data: { name: "AI Creator Camp 開発ツール一式（10月限定）" } }, quantity: 1 }]
+        : [{ price, quantity: 1 }],
       subscription_data: { metadata },
       success_url: `${appUrl()}/join/thanks?course=sns`,
       cancel_url: SNS_FORM_URL,
