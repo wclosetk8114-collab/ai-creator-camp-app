@@ -37,6 +37,23 @@ export async function POST(req: Request) {
   if (promo) {
     const rows = await sql<{ id: string }[]>`select id from camp.members where email = ${email} limit 1`;
     needTool = rows.length === 0;
+    // 会員表にいなくても、このStripeで支払い済みの人（アプリ移行前にツールを買った人など）はツール購入者として扱う
+    if (needTool) {
+      try {
+        // ゲスト購入（決済リンク）も拾えるよう、完了済みのチェックアウトをメールで探す
+        const done = await stripe.checkout.sessions.list({ customer_details: { email }, status: "complete", limit: 10 });
+        if (done.data.some((x) => x.payment_status === "paid")) needTool = false;
+        if (needTool) {
+          const custs = await stripe.customers.list({ email, limit: 10 });
+          for (const c of custs.data) {
+            const ch = await stripe.charges.list({ customer: c.id, limit: 20 });
+            if (ch.data.some((x) => x.paid && x.status === "succeeded" && !x.refunded)) { needTool = false; break; }
+          }
+        }
+      } catch (e) {
+        console.error("tool owner check failed", e);
+      }
+    }
     // 「ツール購入済み」で申し込んだのに会員として見つからない → ツール購入時のメールで申し込んでもらう
     if (f.get("owned") === "1" && needTool) {
       return back("このメールアドレスでのツール購入が見つかりませんでした。ツールを購入したときのメールアドレスで、もう一度お申し込みください");
