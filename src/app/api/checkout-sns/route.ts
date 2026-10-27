@@ -17,7 +17,10 @@ export async function POST(req: Request) {
   const student = f.get("student") === "1" && plan === "sns";
   // 説明会参加者向け 10月限定価格（月5,000円×6ヶ月）。2026/10/31 23:59（日本時間）まで
   const promo = f.get("promo") === "oct2026" && plan === "sns" && Date.now() < Date.parse("2026-11-01T00:00:00+09:00");
-  const back = (msg: string) => NextResponse.redirect(`${SNS_FORM_URL}?error=${encodeURIComponent(msg)}`, 303);
+  const OCT_FORM = "https://ai-creator-camp-theta.vercel.app/sns-oct.html";
+  const formUrl = f.get("promo") === "oct2026" ? OCT_FORM : SNS_FORM_URL;
+  const back = (msg: string) => NextResponse.redirect(`${formUrl}?error=${encodeURIComponent(msg)}`, 303);
+  if (f.get("promo") === "oct2026" && !promo) return back("10月限定価格の受付は終了しました");
 
   if (!["sns", "sns_camp"].includes(plan)) return back("プランを選んでください");
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return back("メールアドレスを確認してください");
@@ -34,6 +37,10 @@ export async function POST(req: Request) {
   if (promo) {
     const rows = await sql<{ id: string }[]>`select id from camp.members where email = ${email} limit 1`;
     needTool = rows.length === 0;
+    // 「ツール購入済み」で申し込んだのに会員として見つからない → ツール購入時のメールで申し込んでもらう
+    if (f.get("owned") === "1" && needTool) {
+      return back("このメールアドレスでのツール購入が見つかりませんでした。ツールを購入したときのメールアドレスで、もう一度お申し込みください");
+    }
   }
   const metadata = { course: "sns", plan, student: student ? "1" : "0", name, ref, promo: promo ? "oct2026" : "", tool: needTool ? "1" : "0" };
   try {
@@ -47,7 +54,7 @@ export async function POST(req: Request) {
         : [{ price, quantity: 1 }],
       subscription_data: { metadata },
       success_url: `${appUrl()}/join/thanks?course=sns`,
-      cancel_url: SNS_FORM_URL,
+      cancel_url: formUrl,
     });
     return NextResponse.redirect(session.url!, 303);
   } catch (e) {
