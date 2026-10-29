@@ -38,7 +38,7 @@ export default function JoinForm({ initialPlan, initialStudent, initialRef }: { 
         <label className="plan">
           <input type="radio" name="plan" value="tool" checked={plan === "tool"} onChange={() => setPlan("tool")} />
           <h3>ツールのみ</h3>
-          <div className="price">{f(33000 * k)}円 <small>買い切り</small></div>
+          <div className="price">{f(10000)}円 <small>買い切り</small></div>
           <ul>
             <li>開発ツール一式（Claudeに差し込むプラグイン＋手順書）</li>
             <li>ツールの使い方は公式LINEでAIに相談できます</li>
@@ -49,7 +49,7 @@ export default function JoinForm({ initialPlan, initialStudent, initialRef }: { 
 
       <label className="check" style={{ marginTop: 18 }}>
         <input type="checkbox" name="student" value="1" checked={student} onChange={(e) => setStudent(e.target.checked)} />
-        <span>高校生・大学生です（すべて半額。申し込み後に公式LINEで学生証を送ってください）</span>
+        <span>高校生・大学生です（スクールつきは半額。ツールのみは一律10,000円。申し込み後に公式LINEで学生証を送ってください）</span>
       </label>
 
       <label htmlFor="name">お名前</label>
