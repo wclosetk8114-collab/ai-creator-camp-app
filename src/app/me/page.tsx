@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import Shell from "../Shell";
 import { getMember } from "@/lib/session";
 import { sql } from "@/lib/db";
@@ -88,7 +89,7 @@ export default async function Me({ searchParams }: { searchParams: Promise<Recor
           導入 {setupDone} / {setupTotal} ステップ{setupDone >= setupTotal ? "（完了）" : "　→ 公式LINEで「導入」と送ると、続きから1ステップずつ案内します"}
         </p>
         <div className="row">
-          {s.tool_download_url ? <a className="btn small" href={s.tool_download_url} target="_blank">ツールを受け取る</a> : <span className="muted">準備中</span>}
+          <Link className="btn small" href="/me/tool">ツールを受け取る・導入する</Link>
           {s.tool_guide_url && <a className="btn small ghost" href={s.tool_guide_url} target="_blank">手順書を見る</a>}
         </div>
       </div>
