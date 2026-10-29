@@ -84,6 +84,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           <h3>④ ツールの受け取り</h3>
           <Plain name="tool_download_url" label="ツール一式のURL（Googleドライブなど）" value={s.tool_download_url} />
           <Plain name="tool_guide_url" label="手順書のURL" value={s.tool_guide_url} />
+          <Plain name="tool_openchat_url" label="ツール購入者のオープンチャットURL（最新情報の配布用）" value={s.tool_openchat_url} />
         </div>
 
         <div className="card">

@@ -37,6 +37,14 @@ export default async function ToolPage() {
         </div>
       </div>
 
+      {s.tool_openchat_url && (
+        <div className="card soft" style={{ marginTop: 12 }}>
+          <h3 style={{ marginTop: 0 }}>オープンチャット</h3>
+          <p className="muted" style={{ marginBottom: 10 }}>新しいツールの配布と、AIの最新情報はここで流しています。入っておくと取りこぼしません。</p>
+          <a className="btn small ghost" href={s.tool_openchat_url} target="_blank" rel="noopener">オープンチャットに入る</a>
+        </div>
+      )}
+
       {finished && <div className="okbox" style={{ marginTop: 16 }}>導入は完了しています🎉 使い方で困ったら、公式LINEでいつでも聞いてください。</div>}
 
       <h2>導入の手順</h2>

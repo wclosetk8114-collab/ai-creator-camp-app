@@ -33,7 +33,7 @@ const SETTING_KEYS = [
   "line_channel_secret", "line_access_token", "line_friend_url",
   "stripe_secret_key", "stripe_webhook_secret",
   "mail_provider", "gas_mail_url", "gas_mail_secret", "resend_api_key", "mail_from",
-  "tool_download_url", "tool_guide_url", "admin_email", "ai_model",
+  "tool_download_url", "tool_guide_url", "tool_openchat_url", "admin_email", "ai_model",
   "notice_mode", "notice_keep", "notice_mon", "notice_fri", "notice_sat",
   "price_tool", "price_tool_student", "price_school_a", "price_school_a_student",
   "price_school_b", "price_school_b_student", "price_cont", "price_cont_student",
