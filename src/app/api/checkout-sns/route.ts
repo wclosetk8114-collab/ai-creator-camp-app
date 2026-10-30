@@ -9,7 +9,21 @@ export const dynamic = "force-dynamic";
 
 // AI×SNS自動化コースの決済（申し込みフォームは artigia リポの sns-apply.html）
 export async function POST(req: Request) {
-  const f = await req.formData();
+  return handle(await req.formData(), false);
+}
+
+// メールで送る「お支払いだけ」のリンク用（例：/api/checkout-sns?promo=oct2026）。ツールをまだ持っていない人向け
+// フォームを通らないので、メールアドレスとお名前は Stripe の画面で入力してもらう
+export async function GET(req: Request) {
+  const u = new URL(req.url);
+  const f = new FormData();
+  f.set("plan", "sns");
+  f.set("agree", "1");
+  for (const k of ["promo", "owned"]) { const v = u.searchParams.get(k); if (v) f.set(k, v); }
+  return handle(f, true);
+}
+
+async function handle(f: FormData, direct: boolean) {
   const plan = String(f.get("plan") || "") as SnsPlan;
   const email = String(f.get("email") || "").trim().toLowerCase();
   const name = String(f.get("name") || "").trim().slice(0, 80);
@@ -23,8 +37,8 @@ export async function POST(req: Request) {
   if (f.get("promo") === "oct2026" && !promo) return back("10月限定価格の受付は終了しました");
 
   if (!["sns", "sns_camp"].includes(plan)) return back("プランを選んでください");
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return back("メールアドレスを確認してください");
-  if (!name) return back("お名前を入れてください");
+  if (!direct && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return back("メールアドレスを確認してください");
+  if (!direct && !name) return back("お名前を入れてください");
   if (f.get("agree") !== "1") return back("利用規約への同意が必要です");
 
   const ctx = await getStripe();
@@ -35,10 +49,12 @@ export async function POST(req: Request) {
   // 10月限定価格はツール別。まだ会員でない（＝ツールを持っていない）人には、ツール代 10,000円を初回に足す
   let needTool = false;
   if (promo) {
-    const rows = await sql<{ id: string }[]>`select id from camp.members where email = ${email} limit 1`;
+    const rows = direct ? [] : await sql<{ id: string }[]>`select id from camp.members where email = ${email} limit 1`;
     needTool = rows.length === 0;
+    // 直リンクは購入者の確認ができないので、必ずツール代つき（購入済みの人はフォームから申し込む）
+    if (direct) needTool = true;
     // 会員表にいなくても、このStripeで支払い済みの人（アプリ移行前にツールを買った人など）はツール購入者として扱う
-    if (needTool) {
+    if (needTool && !direct) {
       try {
         // ゲスト購入（決済リンク）も拾えるよう、完了済みのチェックアウトをメールで探す
         const done = await stripe.checkout.sessions.list({ customer_details: { email }, status: "complete", limit: 10 });
@@ -55,7 +71,7 @@ export async function POST(req: Request) {
       }
     }
     // 「ツール購入済み」で申し込んだのに会員として見つからない → ツール購入時のメールで申し込んでもらう
-    if (f.get("owned") === "1" && needTool) {
+    if (!direct && f.get("owned") === "1" && needTool) {
       return back("このメールアドレスでのツール購入が見つかりませんでした。ツールを購入したときのメールアドレスで、もう一度お申し込みください");
     }
   }
@@ -63,7 +79,7 @@ export async function POST(req: Request) {
   try {
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
-      customer_email: email,
+      ...(email ? { customer_email: email } : {}),
       metadata,
       locale: "ja",
       line_items: needTool
