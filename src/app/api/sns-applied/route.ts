@@ -15,7 +15,7 @@ export async function POST(req: Request) {
   const email = String(d.email || "").trim().toLowerCase().slice(0, 200);
   const plan = d.plan === "sns_camp" ? "sns_camp" : "sns";
   if (!name || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return NextResponse.json({ ok: false });
-  const promo = d.promo === "oct2026";
+  const promo = d.promo === "oct2026" || d.promo === "tokubetsu";
   const owned = d.owned === "1";
   const student = d.student === "1";
 
@@ -24,7 +24,7 @@ export async function POST(req: Request) {
   f.set("plan", plan); f.set("name", name); f.set("email", email); f.set("agree", "1");
   f.set("ref", String(d.ref || "").slice(0, 80));
   if (student) f.set("student", "1");
-  if (promo) { f.set("promo", "oct2026"); f.set("owned", owned ? "1" : "0"); }
+  if (promo) { f.set("promo", d.promo); f.set("owned", owned ? "1" : "0"); }
   const res = await checkout(new Request("https://local/api/checkout-sns", { method: "POST", body: f }));
   const url = res.headers.get("location") || "";
   if (!url.startsWith("https://checkout.stripe.com/")) return NextResponse.json({ ok: false });

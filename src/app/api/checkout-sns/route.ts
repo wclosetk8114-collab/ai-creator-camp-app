@@ -30,9 +30,13 @@ async function handle(f: FormData, direct: boolean) {
   const ref = String(f.get("ref") || "").trim().slice(0, 80);
   const student = f.get("student") === "1" && plan === "sns";
   // 説明会参加者向け 10月限定価格（月5,000円×6ヶ月）。2026/10/31 23:59（日本時間）まで
-  const promo = f.get("promo") === "oct2026" && plan === "sns" && Date.now() < Date.parse("2026-11-01T00:00:00+09:00");
+  // 特別枠（promo=tokubetsu）：身内向けに10月限定価格を期限なしで出す（sns-special.html）
+  const code = String(f.get("promo") || "");
+  const special = code === "tokubetsu";
+  const promo = plan === "sns" && (special || (code === "oct2026" && Date.now() < Date.parse("2026-11-01T00:00:00+09:00")));
   const OCT_FORM = "https://ai-creator-camp-theta.vercel.app/sns-oct.html";
-  const formUrl = f.get("promo") === "oct2026" ? OCT_FORM : SNS_FORM_URL;
+  const SPECIAL_FORM = "https://ai-creator-camp-theta.vercel.app/sns-special.html";
+  const formUrl = special ? SPECIAL_FORM : code === "oct2026" ? OCT_FORM : SNS_FORM_URL;
   const back = (msg: string) => NextResponse.redirect(`${formUrl}?error=${encodeURIComponent(msg)}`, 303);
   if (f.get("promo") === "oct2026" && !promo) return back("10月限定価格の受付は終了しました");
 
@@ -75,7 +79,7 @@ async function handle(f: FormData, direct: boolean) {
       return back("このメールアドレスでのツール購入が見つかりませんでした。ツールを購入したときのメールアドレスで、もう一度お申し込みください");
     }
   }
-  const metadata = { course: "sns", plan, student: student ? "1" : "0", name, ref, promo: promo ? "oct2026" : "", tool: needTool ? "1" : "0" };
+  const metadata = { course: "sns", plan, student: student ? "1" : "0", name, ref, promo: promo ? "oct2026" : "", special: special ? "1" : "0", tool: needTool ? "1" : "0" };
   try {
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
