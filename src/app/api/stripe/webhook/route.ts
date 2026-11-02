@@ -155,6 +155,8 @@ async function onInvoicePaid(inv: Stripe.Invoice, stripe: Stripe, s: Record<stri
     return;
   }
 
+  if (m.plan === "school_m3") return onM3InvoicePaid(inv, subId, m, stripe, s);
+
   const school = schoolPriceIds(s);
   const paidSchool = (inv.lines?.data || []).some((l) => {
     const pid = l.pricing?.price_details?.price ?? (l as unknown as { price?: { id: string } }).price?.id;
@@ -188,6 +190,31 @@ async function onInvoicePaid(inv: Stripe.Invoice, stripe: Stripe, s: Record<stri
       text(`スクール代のお支払いは今回で完了です。ありがとうございました。
 次回から、専門コース（月${m.is_student ? "1,990" : "3,980"}円）に自動で切り替わります。
 基礎の課題がまだ残っていても、そのまま続けられます。`),
+    ]);
+  }
+}
+
+// 特別枠：ツール購入者のスクール 月5,000円×3回 → 4回目から専門コース（月3,980円／学生1,990円）
+async function onM3InvoicePaid(inv: Stripe.Invoice, subId: string, m: Member, stripe: Stripe, s: Record<string, string>) {
+  if (!(inv.amount_paid > 0)) return;
+  const r = await sql<{ n: number }[]>`
+    update camp.members set school_invoices_paid = school_invoices_paid + 1 where id = ${m.id} returning school_invoices_paid as n`;
+  if (r[0].n < 3) return;
+  const sub = await stripe.subscriptions.retrieve(subId);
+  const item = sub.items.data[0];
+  const cont = s[m.is_student && m.student_status !== "rejected" ? "price_cont_student" : "price_cont"];
+  if (item && cont) {
+    await stripe.subscriptions.update(subId, {
+      items: [{ id: item.id, price: cont }],
+      proration_behavior: "none",
+      metadata: { ...sub.metadata, stage: "continuation" },
+    });
+  }
+  await sql`update camp.members set continuation = true where id = ${m.id}`;
+  if (m.line_user_id && s.line_access_token) {
+    await push(s.line_access_token, m.line_user_id, [
+      text(`スクール代のお支払いは今回で完了です。ありがとうございました。
+次回から、専門コース（月${m.is_student ? "1,990" : "3,980"}円）に自動で切り替わります。`),
     ]);
   }
 }
