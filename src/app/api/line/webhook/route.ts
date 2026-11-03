@@ -74,7 +74,8 @@ https://ai-creator-camp-theta.vercel.app/sns-shindan.html`)]);
   const t = (msg.text || "").trim().replace(/\s+/g, " ");
 
   // 連携コード
-  const link = t.match(/^(?:連携 ?)?(\d{6})$/);
+  // 全角数字・前後の空白もOKにする
+  const link = t.replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0)).replace(/\s/g, "").match(/^(?:連携)?(\d{6})$/);
   if (link) {
     const r = await sql<Member[]>`
       update camp.members set line_user_id = ${uid}
