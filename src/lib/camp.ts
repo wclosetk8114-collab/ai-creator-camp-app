@@ -21,6 +21,50 @@ export async function listStages(track: string): Promise<Stage[]> {
 }
 
 /** いま取り組むステージ（無ければ null：基礎修了で専門未選択、または専門を最後まで終えた） */
+// ---- AI×SNS自動化コース（2週間ごとに1ステージ・全12） ----
+type SnsFields = { sns_status?: string | null; sns_stage?: number | null };
+export function hasSns(m: Member) {
+  return (m as Member & SnsFields).sns_status === "active" && m.status !== "canceled";
+}
+export async function currentSnsStage(m: Member): Promise<Stage | null> {
+  if (!hasSns(m)) return null;
+  return getStage("sns", (m as Member & SnsFields).sns_stage || 1);
+}
+export function snsStageText(s: Stage, m?: Member) {
+  const hi = m?.name ? `${m.name}さん、` : "";
+  return `📍SNSコース・課題${s.no}「${s.title}」
+
+${hi}${s.body}
+
+✏️ 提出するもの
+${s.task}
+
+できたら「提出」と送ってね📮`;
+}
+export async function submitSnsWork(
+  m: Member,
+  content: string,
+  images: { data: Buffer; type: string }[],
+): Promise<{ message: string }> {
+  const stage = await currentSnsStage(m);
+  if (!stage) return { message: "SNSコースの課題は、すべて合格しています🎉 おつかれさまでした！" };
+  const grade = await gradeSubmission(stage, content, images);
+  await sql`
+    insert into camp.submissions (member_id, track, stage_no, content, has_image, verdict, feedback, score)
+    values (${m.id}, 'sns', ${stage.no}, ${content}, ${images.length > 0}, ${grade.verdict}, ${grade.feedback}, ${grade.score})`;
+  if (grade.verdict === "pending") {
+    await sql`insert into camp.tickets (member_id, line_user_id, kind, content)
+      values (${m.id}, ${m.line_user_id}, 'review', ${`SNSコース 課題${stage.no} の自動審査に失敗。管理画面の提出一覧で判定してください。`})`;
+    return { message: "提出、受け取りました！🙏 いま確認に少し時間がかかっています。運営が見て、このLINEでお返事しますね。" };
+  }
+  if (grade.verdict === "retry") {
+    return { message: `🙌 あと一歩です！ SNSコース・課題${stage.no}「${stage.title}」\n\n${grade.feedback}\n\n直したら、もう一度「提出」と送ってね📮` };
+  }
+  await sql`update camp.members set sns_stage = ${stage.no + 1} where id = ${m.id}`;
+  const next = await getStage("sns", stage.no + 1);
+  return { message: `🎉 合格です！ SNSコース・課題${stage.no}「${stage.title}」\n\n${grade.feedback}\n\n` + (next ? `次の課題は、次の週のお知らせで届きます。先に見たいときは「いまの課題」と送ってね。` : "🎓 SNSコースの課題はすべて合格です！ほんとうにおつかれさまでした！") };
+}
+
 export async function currentStage(m: Member): Promise<Stage | null> {
   if (!hasSchool(m)) return null;
   return getStage(m.track, m.current_stage);
@@ -82,6 +126,10 @@ ${appUrl()}/me`;
 export async function statusText(m: Member): Promise<string> {
   const setup = await currentSetup(m);
   if (setup) return setupText(setup, await stageCount("setup"));
+  if (!hasSchool(m) && hasSns(m)) {
+    const ss = await currentSnsStage(m);
+    return ss ? snsStageText(ss, m) : "SNSコースの課題は、すべて合格しています🎉";
+  }
   if (!hasSchool(m)) {
     return `ツールの準備は完了してます👌 使い方は、なんでもこのLINEで聞いてくださいね☺️
 📚 スクールに入る場合はマイページから：${appUrl()}/me`;

@@ -4,7 +4,7 @@ import { getSettings, appUrl, type Settings } from "@/lib/settings";
 import { verifyLineSignature, reply, text, texts, getContent, type LineMessage } from "@/lib/line";
 import { mentorReply } from "@/lib/ai";
 import {
-  advanceSetup, chooseTrack, currentSetup, currentStage, fmtDate, hasSchool, statusText, submitWork, TRACK_WORDS, upcomingEvents,
+  advanceSetup, chooseTrack, currentSetup, currentSnsStage, currentStage, fmtDate, hasSchool, hasSns, snsStageText, statusText, submitSnsWork, submitWork, TRACK_WORDS, upcomingEvents,
 } from "@/lib/camp";
 
 export const runtime = "nodejs";
@@ -131,7 +131,8 @@ ${appUrl()}/login`)]);
   }
 
   // ===== 提出モード =====
-  if (st.mode === "submit") {
+  if (st.mode === "submit" || st.mode === "submit_sns") {
+    const sm = st.mode;
     if (t === "キャンセル") { await setMode(""); return say([text("提出をやめました。")]); }
     if (t === "以上" || t === "提出する" || t === "送信") {
       if (!st.draft && !st.image_ids.length) return say([text("まだ何も届いていないみたいです👀 文章・URL・画像を送ってから「以上」と送ってね。")]);
@@ -158,23 +159,39 @@ ${appUrl()}/login`)]);
       const content = [st.draft.trim(), extra && `--- 直前のやりとり（同じ提出の一部の可能性があります）---\n${extra}`]
         .filter(Boolean)
         .join("\n\n");
-      const res = await submitWork(m, content, images);
+      const res = sm === "submit_sns" ? await submitSnsWork(m, content, images) : await submitWork(m, content, images);
       await log("user", `【提出】${st.draft.trim()}${images.length ? `（画像${images.length}枚）` : ""}`);
       await log("assistant", res.message);
       return say(texts(res.message));
     }
     if (msg.type === "image") {
-      await setMode("submit", st.draft, [...st.image_ids, msg.id]);
+      await setMode(sm, st.draft, [...st.image_ids, msg.id]);
       return say([text(`📸 画像を受け取りました（${st.image_ids.length + 1}枚目）。続けて送るか、最後に「以上」と送ってね。`)]);
     }
     if (msg.type === "text") {
-      await setMode("submit", (st.draft ? st.draft + "\n" : "") + (msg.text || ""), st.image_ids);
+      await setMode(sm, (st.draft ? st.draft + "\n" : "") + (msg.text || ""), st.image_ids);
       return say([text("👌 受け取りました！続けて送るか、全部送ったら「以上」と送ってね。")]);
     }
     return say([text("文章・URL・画像で送ってください。動画はURL（YouTubeやGoogleドライブなど）でお願いします。")]);
   }
 
   // ===== コマンド =====
+  // SNSコースの提出（スクールにも入っている人は「SNS提出」で SNS 側に出す）
+  const snsWord = ["SNS提出", "sns提出", "ＳＮＳ提出"].includes(t);
+  if (snsWord || ((t === "提出" || t === "課題提出" || t === "課題を提出") && !hasSchool(m) && hasSns(m))) {
+    if (!hasSns(m)) return say([text("SNSコースの提出は、SNSコースを受講中のかたが使えます。")]);
+    const ss = await currentSnsStage(m);
+    if (!ss) return say([text("SNSコースの課題は、すべて合格しています🎉")]);
+    await setMode("submit_sns");
+    return say([text(`📮 SNSコース・課題${ss.no}「${ss.title}」の提出、受け付けます！
+
+✏️ 提出するもの
+${ss.task}
+
+文章・URL・画像を、何回かに分けて送ってOKです。
+全部送ったら「以上」と送ってね。すぐに確認します⏱️
+（やめるときは「キャンセル」）`)]);
+  }
   if (t === "提出" || t === "課題提出" || t === "課題を提出") {
     if (!hasSchool(m)) return say([text(`課題の提出はスクールつきのプランで使えます。\n${appUrl()}/join`)]);
     const stage = await currentStage(m);
@@ -202,8 +219,13 @@ ${stage.task}
     }
     if (hasSchool(m)) return say([text("課題ができたら「提出」と送って、提出物を送ってね📮")]);
   }
+  if (["SNS課題", "sns課題", "ＳＮＳ課題"].includes(t)) {
+    const ss = await currentSnsStage(m);
+    return say(texts(ss ? snsStageText(ss, m) : "SNSコースの課題は、受講中のかたに届きます。"));
+  }
   if (["いまの課題", "今の課題", "課題", "カリキュラム", "ステージ"].includes(t)) {
-    return say(texts(await statusText(m)));
+    const both = hasSchool(m) && hasSns(m) ? "\n\n（SNSコースの課題は「SNS課題」、提出は「SNS提出」と送ってね）" : "";
+    return say(texts((await statusText(m)) + both));
   }
   if (t === "マイページ") {
     return say([text(`マイページ（ツールの受け取り・進み具合・支払い）：\n${appUrl()}/me\nメールアドレスだけでログインできます。`)]);
@@ -261,7 +283,7 @@ ${stage.task}
     else merged.push({ ...h });
   }
   if (merged.length && merged[merged.length - 1].role === "user") merged.pop();
-  const stage = (await currentSetup(m)) || (await currentStage(m));
+  const stage = (await currentSetup(m)) || (await currentStage(m)) || (await currentSnsStage(m));
   const out = await mentorReply(m, stage, merged, msg.text || "", images);
   await log("user", msg.text || "（画像）");
   await log("assistant", out.text);
