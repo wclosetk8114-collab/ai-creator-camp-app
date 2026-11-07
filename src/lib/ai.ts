@@ -104,7 +104,22 @@ export async function mentorReply(
   while (hist.length && hist[0].role !== "user") hist.shift();
   const out = await ask(system, [...imageBlocks(images), { type: "text", text: message || "（画像のみ）" }], hist, 900);
   const escalate = out.includes("[ESCALATE]");
-  return { text: out.replace("[ESCALATE]", "").trim(), escalate };
+  return { text: sanitizeMentor(out.replace("[ESCALATE]", "").trim()), escalate };
+}
+
+/**
+ * 相談AIの返事から「合格です」「次はステージ◯」など、記録に残らない合否・進級の宣言を取りのぞく。
+ * 指示だけでは守られないことがあったので、出力側で機械的に落とす。
+ * 課題文そのものは「いまの課題」コマンド（DBの camp.stages）が返すので、ここでは案内だけ残す。
+ */
+const VERDICT_RE = /(合格|不合格|やり直し|クリア)(です|でーす|ですね|！|!|🎉|✨|おめ|。|$)|次(は|の)?[のは]?\s*(ステージ|Stage|stage) ?\d|ステージ ?\d+ ?(に進|へ進|クリア)|進級/;
+export function sanitizeMentor(out: string): string {
+  const lines = out.split("\n");
+  const kept = lines.filter((l) => !VERDICT_RE.test(l));
+  if (kept.length === lines.length) return out;
+  const body = kept.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+  const note = "合否は「提出」と送って提出したときに決まります📮\nいまの課題を見たいときは「いまの課題」と送ってくださいね☺️";
+  return body ? `${body}\n\n${note}` : note;
 }
 
 /** 週のお知らせの文面を、毎回ちがう言い回し・励ます感じに書きかえる。{name}{stage} はそのまま残す */

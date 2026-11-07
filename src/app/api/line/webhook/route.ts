@@ -48,6 +48,19 @@ const HELP = `📖 このLINEの使い方
 🙋 スタッフ … 運営の人につなぐ
 💬 それ以外 … なんでも気軽に相談してね（24時間OK）`;
 
+// 「ステージ3の課題を教えて」「次の課題は？」のように課題そのものを聞かれたら、
+// 相談AIに書かせず、マイページと同じ camp.stages の課題文をそのまま返す。
+// （AIが課題を言いかえてしまい、LINEとマイページで中身が食い違う事故を構造的に防ぐ）
+function asksForTask(t: string): boolean {
+  if (t.length > 60) return false;
+  const about = /(課題|ステージ|ステ-ジ)/.test(t);
+  if (!about) return false;
+  return /(教え|おしえ|知りたい|しりたい)/.test(t)
+    || /(課題|ステージ)[^。]{0,8}(は何|はなに|何です|なんです|なんですか|は\?|は？)/.test(t)
+    || /^(次|つぎ|次の|つぎの)(の)?(ステージ|課題)/.test(t)
+    || (/^(ステージ|stage|Stage) ?\d+/.test(t) && (t.length <= 12 || /課題/.test(t)));
+}
+
 async function handle(ev: LineEvent, s: Settings) {
   const token = s.line_access_token;
   const uid = ev.source?.userId;
@@ -223,7 +236,7 @@ ${stage.task}
     const ss = await currentSnsStage(m);
     return say(texts(ss ? snsStageText(ss, m) : "SNSコースの課題は、受講中のかたに届きます。"));
   }
-  if (["いまの課題", "今の課題", "課題", "カリキュラム", "ステージ"].includes(t)) {
+  if (["いまの課題", "今の課題", "課題", "カリキュラム", "ステージ"].includes(t) || asksForTask(t)) {
     const both = hasSchool(m) && hasSns(m) ? "\n\n（SNSコースの課題は「SNS課題」、提出は「SNS提出」と送ってね）" : "";
     return say(texts((await statusText(m)) + both));
   }
