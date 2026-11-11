@@ -205,7 +205,18 @@ ${ss.task}
 全部送ったら「以上」と送ってね。すぐに確認します⏱️
 （やめるときは「キャンセル」）`)]);
   }
-  if (t === "提出" || t === "課題提出" || t === "課題を提出") {
+  // 両方受講中の人は「提出」だけだと迷うので、どちらに出すか聞く
+  if ((t === "提出" || t === "課題提出" || t === "課題を提出") && hasSchool(m) && hasSns(m)) {
+    return say([text(`📮 どちらの課題を提出しますか？
+
+🎨 AIクリエイター（スクール）の課題
+→「スクール提出」と送ってね
+
+📱 SNS×自動化コースの課題
+→「SNS提出」と送ってね`)]);
+  }
+  const schoolWord = ["スクール提出", "クリエイター提出", "キャンプ提出"].includes(t);
+  if (schoolWord || t === "提出" || t === "課題提出" || t === "課題を提出") {
     if (!hasSchool(m)) return say([text(`課題の提出はスクールつきのプランで使えます。\n${appUrl()}/join`)]);
     const stage = await currentStage(m);
     if (!stage) return say([text(await statusText(m))]);
@@ -237,8 +248,14 @@ ${stage.task}
     return say(texts(ss ? snsStageText(ss, m) : "SNSコースの課題は、受講中のかたに届きます。"));
   }
   if (["いまの課題", "今の課題", "課題", "カリキュラム", "ステージ"].includes(t) || asksForTask(t)) {
-    const both = hasSchool(m) && hasSns(m) ? "\n\n（SNSコースの課題は「SNS課題」、提出は「SNS提出」と送ってね）" : "";
-    return say(texts((await statusText(m)) + both));
+    if (hasSchool(m) && hasSns(m) && !(await currentSetup(m))) {
+      const ss = await currentSnsStage(m);
+      return say([
+        ...texts(`🎨【AIクリエイター（スクール）】\n\n${await statusText(m)}\n\n提出するときは「スクール提出」`),
+        ...texts(`📱【SNS×自動化コース】\n\n${ss ? snsStageText(ss, m).replace("できたら「提出」と送ってね📮", "提出するときは「SNS提出」") : "SNSコースの課題はすべて合格しています🎉"}`),
+      ].slice(0, 5));
+    }
+    return say(texts(await statusText(m)));
   }
   if (t === "マイページ") {
     return say([text(`マイページ（ツールの受け取り・進み具合・支払い）：\n${appUrl()}/me\nメールアドレスだけでログインできます。`)]);
@@ -297,7 +314,7 @@ ${stage.task}
   }
   if (merged.length && merged[merged.length - 1].role === "user") merged.pop();
   const stage = (await currentSetup(m)) || (await currentStage(m)) || (await currentSnsStage(m));
-  const out = await mentorReply(m, stage, merged, msg.text || "", images);
+  const out = await mentorReply(m, stage, merged, msg.text || "", images, hasSchool(m) && hasSns(m) ? await currentSnsStage(m) : null);
   await log("user", msg.text || "（画像）");
   await log("assistant", out.text);
   if (out.escalate) {
