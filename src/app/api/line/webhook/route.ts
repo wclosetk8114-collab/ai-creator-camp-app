@@ -116,7 +116,9 @@ ${appUrl()}/login`)]);
   if (m.pending_notice) {
     const notice = m.pending_notice;
     await sql`update camp.members set pending_notice = '' where id = ${m.id}`;
-    say = (msgs: LineMessage[]) => reply(token, rt, [text(`📢 今週のお知らせ\n${notice}`), ...msgs].slice(0, 5));
+    // 週のお知らせ以外（運営からの合格通知など）は、見出しを足さずそのまま出す
+    const head = /^[【📮🎉📣🙌]/.test(notice) ? notice : `📢 今週のお知らせ\n${notice}`;
+    say = (msgs: LineMessage[]) => reply(token, rt, [text(head), ...msgs].slice(0, 5));
   }
   if (m.status === "canceled") {
     return say([text(`ご利用が終了しています。再開はこちらから：${appUrl()}/join\nご不明点はメールでお問い合わせください。`)]);

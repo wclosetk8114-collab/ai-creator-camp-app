@@ -159,9 +159,28 @@ export async function decideStudent(fd: FormData) {
 }
 
 // ===== 会員 =====
+/**
+ * 会員に知らせる。公式LINEに送れればその場で送り、送れなければ
+ * 次にその人から話しかけられたときの返信の先頭に乗せる（返信は無料）。
+ * サイト（管理画面・マイページ）側の変更を、必ず公式LINEにも届けるための共通口。
+ */
+async function notifyMember(m: Member, body: string): Promise<boolean> {
+  const s = await getSettings();
+  if (m.line_user_id && s.line_access_token) {
+    const ok = await push(s.line_access_token, m.line_user_id, [text(body)]);
+    if (ok) {
+      await sql`insert into camp.messages (member_id, line_user_id, role, content) values (${m.id}, ${m.line_user_id}, 'admin', ${body})`;
+      return true;
+    }
+  }
+  await sql`update camp.members set pending_notice = ${body} where id = ${m.id}`;
+  return false;
+}
+
 export async function updateMember(fd: FormData) {
   await guard();
   const id = String(fd.get("id"));
+  const before = (await sql<Member[]>`select * from camp.members where id = ${id}`)[0];
   await sql`update camp.members set
     name = ${String(fd.get("name") || "")},
     plan = ${String(fd.get("plan"))},
@@ -174,6 +193,15 @@ export async function updateMember(fd: FormData) {
     core_completed = ${fd.get("core_completed") === "1"},
     notes = ${String(fd.get("notes") || "")}
     where id = ${id}`;
+  // サイトで進み具合を変えたら、同じ内容を公式LINEにも届ける（LINEとマイページを食い違わせない）
+  const after = (await sql<Member[]>`select * from camp.members where id = ${id}`)[0];
+  if (
+    before && after && after.status !== "canceled" &&
+    (after.current_stage !== before.current_stage || after.track !== before.track || after.setup_step !== before.setup_step)
+  ) {
+    const { statusText } = await import("@/lib/camp");
+    await notifyMember(after, `【運営より】進み具合を更新しました。いまの課題はこちらです👇\n\n${await statusText(after)}`);
+  }
   revalidatePath(`/admin/members/${id}`);
 }
 
@@ -223,7 +251,7 @@ export async function overrideSubmission(fd: FormData) {
   } else {
     msg = `【もう一歩】Stage ${sub.stage_no}（運営が確認しました）\n${note}\n\n直したら、もう一度「提出」と送ってください。`;
   }
-  if (m?.line_user_id && s.line_access_token) await push(s.line_access_token, m.line_user_id, [text(msg.trim())]);
+  if (m) await notifyMember(m, msg.trim());
   revalidatePath("/admin/submissions");
 }
 
